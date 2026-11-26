@@ -14,6 +14,7 @@ import {
   desc,
   eq,
   financialTransactions,
+  hardwareDiagnosticSnapshots,
   inArray,
   organizations,
   osDiagnostics,
@@ -513,8 +514,25 @@ export class ServiceOrdersService {
         .where(eq(financialTransactions.serviceOrderId, match.id))
         .orderBy(desc(financialTransactions.createdAt));
 
+      const hwSnaps = await tx
+        .select({
+          stage: hardwareDiagnosticSnapshots.stage,
+          ramGb: hardwareDiagnosticSnapshots.ramGb,
+          storageSummary: hardwareDiagnosticSnapshots.storageSummary,
+          smartHealthPct: hardwareDiagnosticSnapshots.smartHealthPct,
+          cpuTempCelsius: hardwareDiagnosticSnapshots.cpuTempCelsius,
+        })
+        .from(hardwareDiagnosticSnapshots)
+        .where(eq(hardwareDiagnosticSnapshots.serviceOrderId, match.id))
+        .orderBy(desc(hardwareDiagnosticSnapshots.createdAt));
+
+      const beforeHw = hwSnaps.find((s) => s.stage === 'BEFORE') ?? null;
+      const afterHw = hwSnaps.find((s) => s.stage === 'AFTER') ?? null;
+
       return {
         latestDiag: latestDiag ?? null,
+        hardwareComparison:
+          beforeHw || afterHw ? { before: beforeHw, after: afterHw } : null,
         quotes: portalQuotes.map((q) => ({
           id: q.id,
           code: q.code,
@@ -563,6 +581,7 @@ export class ServiceOrdersService {
           }
         : null,
       diagnostic: extras.latestDiag,
+      hardwareComparison: extras.hardwareComparison,
       quotes: extras.quotes,
       payments: extras.payments,
       events: detail.events.map((e) => ({

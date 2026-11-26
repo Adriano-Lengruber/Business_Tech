@@ -31,6 +31,9 @@ import {
   knowledgeChunks,
   conversations,
   messages,
+  hardwareDiagnosticSnapshots,
+  warrantyCases,
+  maintenanceContracts,
 } from './schema/index.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -844,6 +847,99 @@ async function seed() {
           createdAt: dayOffset(2),
         },
       ]);
+    }
+
+    // Seed Fase 7: Snapshots Hardware Antes/Depois, Garantia/RMA e Contrato B2B SLA
+    if (demoOs && existingCustList[0]) {
+      const existingSnap = await db
+        .select({ id: hardwareDiagnosticSnapshots.id })
+        .from(hardwareDiagnosticSnapshots)
+        .where(eq(hardwareDiagnosticSnapshots.serviceOrderId, demoOs.id))
+        .limit(1);
+
+      if (existingSnap.length === 0) {
+        await db.insert(hardwareDiagnosticSnapshots).values([
+          {
+            organizationId: orgId,
+            serviceOrderId: demoOs.id,
+            assetId: demoOs.assetId,
+            stage: 'BEFORE',
+            source: 'windows_collector',
+            cpuModel: 'Intel Core i5-1235U',
+            ramGb: 8,
+            storageSummary: 'NVMe 256GB Micron',
+            smartHealthPct: 68,
+            batteryHealthPct: 79,
+            osVersion: 'Windows 11 Home 23H2',
+            cpuTempCelsius: 99,
+            notes: 'Pasta térmica ressecada e saída obstruída.',
+            capturedByUserId: userId,
+          },
+          {
+            organizationId: orgId,
+            serviceOrderId: demoOs.id,
+            assetId: demoOs.assetId,
+            stage: 'AFTER',
+            source: 'windows_collector',
+            cpuModel: 'Intel Core i5-1235U',
+            ramGb: 16,
+            storageSummary: 'NVMe 1TB Kingston NV2',
+            smartHealthPct: 100,
+            batteryHealthPct: 79,
+            osVersion: 'Windows 11 Home 24H2',
+            cpuTempCelsius: 63,
+            notes: 'Limpeza ultrassônica, pasta térmica prata e upgrade concluídos.',
+            capturedByUserId: userId,
+          },
+        ]);
+      }
+
+      const existingWarranty = await db
+        .select({ id: warrantyCases.id })
+        .from(warrantyCases)
+        .where(eq(warrantyCases.organizationId, orgId))
+        .limit(1);
+
+      if (existingWarranty.length === 0) {
+        await db.insert(warrantyCases).values({
+          organizationId: orgId,
+          serviceOrderId: demoOs.id,
+          assetId: demoOs.assetId,
+          customerId: demoOs.customerId,
+          code: 'GAR-2026-0001',
+          kind: 'service',
+          status: 'ACTIVE',
+          warrantyDays: 90,
+          expiresAt: new Date(Date.now() + 90 * 86400000),
+          partDescription: 'Limpeza Térmica + NVMe Kingston',
+          notes: 'Garantia padrão de serviço e componente instalado.',
+        });
+      }
+    }
+
+    const existingContract = await db
+      .select({ id: maintenanceContracts.id })
+      .from(maintenanceContracts)
+      .where(eq(maintenanceContracts.organizationId, orgId))
+      .limit(1);
+
+    if (existingContract.length === 0 && existingCustList[0]) {
+      await db.insert(maintenanceContracts).values({
+        organizationId: orgId,
+        customerId: existingCustList[0].id,
+        code: 'CTR-2026-0001',
+        title: 'Plano Preventivo + Suporte TI Mensal (10 Estações)',
+        planTier: 'preventive',
+        status: 'ACTIVE',
+        monthlyPriceCents: 149000,
+        includedHours: 12,
+        usedHours: 3,
+        slaResponseHours: 4,
+        coveredAssetsCount: 10,
+        preventiveFrequencyDays: 60,
+        nextPreventiveAt: new Date(Date.now() + 14 * 86400000),
+        notes: 'Inclui revisão térmica trimestral, monitoramento SMART e atendimento prioritário.',
+      });
     }
 
     console.log('[seed] Seed concluído com sucesso para AL Tech & Soluções.');

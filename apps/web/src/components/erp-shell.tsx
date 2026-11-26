@@ -16,6 +16,7 @@ import {
   Package,
   PlusCircle,
   Printer,
+  Repeat,
   ShieldCheck,
   ShoppingCart,
   Wrench,
@@ -149,6 +150,13 @@ export function ErpShell({
       icon: FileCheck2,
       group: 'Comercial & Fiscal',
       show: session.enabledModules.includes('mod-finance-fiscal'),
+    },
+    {
+      href: '/app/contracts',
+      label: 'Contratos & SLA',
+      icon: Repeat,
+      group: 'Comercial & Fiscal',
+      show: session.enabledModules.includes('mod-contracts-sla'),
     },
     {
       href: '/app/print3d',
