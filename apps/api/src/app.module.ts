@@ -22,10 +22,13 @@ import { PortalController } from './service-orders/portal.controller';
 import { DiagnosticsController } from './service-orders/diagnostics.controller';
 import { HardwareSnapshotsController } from './service-orders/hardware-snapshots.controller';
 import { WarrantiesController } from './service-orders/warranties.controller';
+import { OsOpsController } from './service-orders/os-ops.controller';
 import { DiagnosticReportPdfService } from './service-orders/diagnostic-report-pdf.service';
 import { QuotesController } from './service-orders/quotes.controller';
 import { ContractsController } from './contracts/contracts.controller';
 import { ContractsService } from './contracts/contracts.service';
+import { SourcingController } from './inventory/sourcing.controller';
+import { SourcingService } from './inventory/sourcing.service';
 import { QuotesService } from './service-orders/quotes.service';
 import { ServiceOrdersService } from './service-orders/service-orders.service';
 import { IntakePdfService } from './service-orders/intake-pdf.service';
@@ -83,8 +86,10 @@ import { HealthController } from './health/health.controller';
     DiagnosticsController,
     HardwareSnapshotsController,
     WarrantiesController,
+    OsOpsController,
     QuotesController,
     ContractsController,
+    SourcingController,
     PortalController,
     FinanceController,
     AsaasWebhookController,
@@ -108,6 +113,7 @@ import { HealthController } from './health/health.controller';
     FinanceService,
     AsaasPaymentProvider,
     InventoryService,
+    SourcingService,
     PosService,
     FiscalService,
     SandboxFiscalProvider,

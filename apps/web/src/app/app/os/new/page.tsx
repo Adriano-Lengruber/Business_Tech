@@ -20,6 +20,8 @@ interface AssetItem {
   model: string | null;
   serialNumber: string | null;
   qrToken: string;
+  acquiredFromStore?: boolean;
+  vipDiscountPct?: number;
 }
 
 interface CreatedOsResult {
@@ -44,6 +46,9 @@ function NewOsForm() {
   const [assetBrand, setAssetBrand] = useState('');
   const [assetModel, setAssetModel] = useState('');
   const [assetSerial, setAssetSerial] = useState('');
+  const [acquiredFromStore, setAcquiredFromStore] = useState(false);
+  const [vipDiscountPct, setVipDiscountPct] = useState('20');
+  const [storeSaleRef, setStoreSaleRef] = useState('');
 
   const [priority, setPriority] = useState<'LOW' | 'NORMAL' | 'HIGH' | 'URGENT'>('NORMAL');
   const [symptoms, setSymptoms] = useState('');
@@ -126,6 +131,9 @@ function NewOsForm() {
           brand: assetBrand || undefined,
           model: assetModel || undefined,
           serialNumber: assetSerial || undefined,
+          acquiredFromStore,
+          vipDiscountPct: acquiredFromStore ? Number(vipDiscountPct) || 20 : 0,
+          storeSaleRef: storeSaleRef || undefined,
         }),
       });
       setAssets((prev) => [asset, ...prev]);
@@ -338,43 +346,76 @@ function NewOsForm() {
         {!selectedCustomer ? (
           <p className="text-xs text-text-muted">Selecione um cliente acima para vincular o dispositivo.</p>
         ) : showNewAsset ? (
-          <div className="grid gap-3 sm:grid-cols-4">
-            <select
-              value={assetCategory}
-              onChange={(e) => setAssetCategory(e.target.value)}
-              className="rounded-md border border-border bg-bg px-3 py-2 text-sm"
-            >
-              <option value="notebook">Notebook</option>
-              <option value="desktop">Desktop</option>
-              <option value="impressora-3d">Impressora 3D</option>
-              <option value="periferico">Periférico</option>
-            </select>
-            <input
-              placeholder="Marca (ex: Lenovo)"
-              value={assetBrand}
-              onChange={(e) => setAssetBrand(e.target.value)}
-              className="rounded-md border border-border bg-bg px-3 py-2 text-sm"
-            />
-            <input
-              placeholder="Modelo (ex: ThinkPad T14)"
-              value={assetModel}
-              onChange={(e) => setAssetModel(e.target.value)}
-              className="rounded-md border border-border bg-bg px-3 py-2 text-sm"
-            />
-            <div className="flex gap-2">
-              <input
-                placeholder="Nº Série"
-                value={assetSerial}
-                onChange={(e) => setAssetSerial(e.target.value)}
-                className="flex-1 rounded-md border border-border bg-bg px-3 py-2 text-sm"
-              />
-              <button
-                type="button"
-                onClick={() => void handleCreateAsset()}
-                className="rounded-md bg-accent px-3 py-2 text-xs font-semibold text-accent-foreground"
+          <div className="space-y-3 rounded-xl border border-border bg-bg p-3.5">
+            <div className="grid gap-3 sm:grid-cols-4">
+              <select
+                value={assetCategory}
+                onChange={(e) => setAssetCategory(e.target.value)}
+                className="rounded-xl border border-border bg-surface px-3 py-2 text-sm"
               >
-                Add
-              </button>
+                <option value="notebook">Notebook</option>
+                <option value="desktop">Desktop</option>
+                <option value="impressora-3d">Impressora 3D</option>
+                <option value="periferico">Periférico</option>
+              </select>
+              <input
+                placeholder="Marca (ex: Lenovo)"
+                value={assetBrand}
+                onChange={(e) => setAssetBrand(e.target.value)}
+                className="rounded-xl border border-border bg-surface px-3 py-2 text-sm"
+              />
+              <input
+                placeholder="Modelo (ex: ThinkPad T14)"
+                value={assetModel}
+                onChange={(e) => setAssetModel(e.target.value)}
+                className="rounded-xl border border-border bg-surface px-3 py-2 text-sm"
+              />
+              <div className="flex gap-2">
+                <input
+                  placeholder="Nº Série"
+                  value={assetSerial}
+                  onChange={(e) => setAssetSerial(e.target.value)}
+                  className="flex-1 rounded-xl border border-border bg-surface px-3 py-2 text-sm"
+                />
+                <button
+                  type="button"
+                  onClick={() => void handleCreateAsset()}
+                  className="rounded-xl bg-accent px-3 py-2 text-xs font-semibold text-accent-foreground"
+                >
+                  Add
+                </button>
+              </div>
+            </div>
+            <div className="flex flex-wrap items-center gap-4 text-xs">
+              <label className="flex items-center gap-2 font-medium text-accent">
+                <input
+                  type="checkbox"
+                  checked={acquiredFromStore}
+                  onChange={(e) => setAcquiredFromStore(e.target.checked)}
+                />
+                Equipamento vendido pela nossa loja (Paciente VIP)
+              </label>
+              {acquiredFromStore && (
+                <>
+                  <input
+                    placeholder="Ref. Venda / NF"
+                    value={storeSaleRef}
+                    onChange={(e) => setStoreSaleRef(e.target.value)}
+                    className="w-36 rounded-lg border border-border bg-surface px-2.5 py-1 text-xs"
+                  />
+                  <label className="flex items-center gap-1.5 text-text-secondary">
+                    Desconto VIP (%):
+                    <input
+                      type="number"
+                      min={0}
+                      max={80}
+                      value={vipDiscountPct}
+                      onChange={(e) => setVipDiscountPct(e.target.value)}
+                      className="w-16 rounded-lg border border-border bg-surface px-2 py-1 font-mono text-xs"
+                    />
+                  </label>
+                </>
+              )}
             </div>
           </div>
         ) : (
@@ -384,15 +425,22 @@ function NewOsForm() {
                 key={a.id}
                 type="button"
                 onClick={() => setSelectedAssetId(a.id)}
-                className={`rounded-md border p-3 text-left text-sm ${
+                className={`rounded-xl border p-3 text-left text-sm ${
                   selectedAssetId === a.id
                     ? 'border-accent bg-accent/10'
                     : 'border-border bg-bg hover:bg-surface-muted'
                 }`}
               >
-                <p className="font-medium">
-                  {[a.category, a.brand, a.model].filter(Boolean).join(' · ')}
-                </p>
+                <div className="flex items-center justify-between gap-2">
+                  <p className="font-medium">
+                    {[a.category, a.brand, a.model].filter(Boolean).join(' · ')}
+                  </p>
+                  {a.acquiredFromStore && (
+                    <span className="rounded-full bg-accent/15 px-2 py-0.5 font-mono text-[10px] font-semibold text-accent">
+                      VIP LOJA -{a.vipDiscountPct ?? 20}%
+                    </span>
+                  )}
+                </div>
                 <p className="font-mono text-xs text-text-muted">
                   QR: {a.qrToken} {a.serialNumber ? `| S/N: ${a.serialNumber}` : ''}
                 </p>

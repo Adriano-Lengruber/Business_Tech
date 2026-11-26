@@ -34,6 +34,8 @@ import {
   hardwareDiagnosticSnapshots,
   warrantyCases,
   maintenanceContracts,
+  sourcingRequests,
+  sourcingOffers,
 } from './schema/index.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -940,6 +942,73 @@ async function seed() {
         nextPreventiveAt: new Date(Date.now() + 14 * 86400000),
         notes: 'Inclui revisão térmica trimestral, monitoramento SMART e atendimento prioritário.',
       });
+    }
+
+    // Seed Fase 8: Marcar ativo demo como VIP Loja + Cotação B2B vs Marketplace PF
+    if (demoOs?.assetId) {
+      await db
+        .update(assets)
+        .set({
+          acquiredFromStore: true,
+          purchasedAt: new Date(Date.now() - 120 * 86400000),
+          storeSaleRef: 'NF-AL-0042',
+          vipDiscountPct: 20,
+        })
+        .where(eq(assets.id, demoOs.assetId));
+    }
+
+    const existingSourcing = await db
+      .select({ id: sourcingRequests.id })
+      .from(sourcingRequests)
+      .where(eq(sourcingRequests.organizationId, orgId))
+      .limit(1);
+
+    if (existingSourcing.length === 0) {
+      const [cot] = await db
+        .insert(sourcingRequests)
+        .values({
+          organizationId: orgId,
+          code: 'COT-2026-0001',
+          itemName: 'SSD NVMe Kingston NV2 1TB PCIe 4.0',
+          category: 'armazenamento',
+          desiredQty: 2,
+          targetResalePriceCents: 54900,
+          urgency: 'normal',
+          status: 'OPEN',
+          aiRecommendation:
+            'Marketplace PF (Mercado Livre Full) está R$ 37,00/un mais barato que o distribuidor B2B no custo posto com frete, garantindo margem bruta de 38%.',
+        })
+        .returning({ id: sourcingRequests.id });
+
+      await db.insert(sourcingOffers).values([
+        {
+          organizationId: orgId,
+          requestId: cot!.id,
+          channelType: 'supplier_b2b',
+          vendorName: 'Distribuidora TechBR Atacado (B2B)',
+          unitPriceCents: 34500,
+          shippingCents: 4200,
+          taxOrFeeCents: 1800,
+          landedUnitCostCents: 37500,
+          deliveryDays: 4,
+          paymentTerms: '28 dias boleto CNPJ',
+          notes: 'Emite NF-e de entrada; frete CIF apenas acima de R$ 2.500.',
+        },
+        {
+          organizationId: orgId,
+          requestId: cot!.id,
+          channelType: 'marketplace_pf',
+          vendorName: 'Mercado Livre Full (Compra PF)',
+          unitPriceCents: 33800,
+          shippingCents: 0,
+          taxOrFeeCents: 0,
+          landedUnitCostCents: 33800,
+          deliveryDays: 1,
+          paymentTerms: 'PIX / Cartão à vista',
+          sourceUrl: 'https://www.mercadolivre.com.br/',
+          notes: 'Frete grátis Full amanhã; ideal para reposição rápida de bancada.',
+        },
+      ]);
     }
 
     console.log('[seed] Seed concluído com sucesso para AL Tech & Soluções.');

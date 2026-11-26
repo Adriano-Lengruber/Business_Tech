@@ -129,7 +129,7 @@ function Print3dContent({ session }: { session: ErpSession }) {
 
   if (!enabled) {
     return (
-      <div className="rounded-lg border border-border bg-surface p-6 text-sm text-text-secondary">
+      <div className="rounded-2xl border border-border bg-surface p-6 text-sm text-text-secondary">
         O módulo <strong>Estúdio de Impressão 3D</strong> está desativado.
       </div>
     );
@@ -144,7 +144,7 @@ function Print3dContent({ session }: { session: ErpSession }) {
       )}
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <div className="rounded-lg border border-border bg-surface p-5 space-y-3">
+        <div className="rounded-2xl border border-border bg-surface p-5 space-y-3">
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-semibold">Pré-visualização 3D (Three.js STL)</h2>
             <label className="cursor-pointer rounded border border-border px-2.5 py-1 text-xs hover:bg-surface-muted">
@@ -171,7 +171,7 @@ function Print3dContent({ session }: { session: ErpSession }) {
 
         <form
           onSubmit={handleCreateJob}
-          className="rounded-lg border border-border bg-surface p-5 space-y-4"
+          className="rounded-2xl border border-border bg-surface p-5 space-y-4"
         >
           <div className="flex items-center gap-2 text-sm font-semibold">
             <Printer className="h-4 w-4 text-accent" />
@@ -183,13 +183,13 @@ function Print3dContent({ session }: { session: ErpSession }) {
             placeholder="Nome da peça / projeto *"
             value={modelName}
             onChange={(e) => setModelName(e.target.value)}
-            className="w-full rounded-md border border-border bg-bg px-3 py-2 text-sm"
+            className="w-full rounded-xl border border-border bg-bg px-3 py-2 text-sm"
           />
 
           <select
             value={filamentId}
             onChange={(e) => setFilamentId(e.target.value)}
-            className="w-full rounded-md border border-border bg-bg px-3 py-2 text-sm"
+            className="w-full rounded-xl border border-border bg-bg px-3 py-2 text-sm"
           >
             {filaments.map((f) => (
               <option key={f.id} value={f.id}>
@@ -206,7 +206,7 @@ function Print3dContent({ session }: { session: ErpSession }) {
                 min={1}
                 value={weightGrams}
                 onChange={(e) => setWeightGrams(e.target.value)}
-                className="mt-1 w-full rounded-md border border-border bg-bg px-3 py-2 text-sm font-mono"
+                className="mt-1 w-full rounded-xl border border-border bg-bg px-3 py-2 text-sm font-mono"
               />
             </div>
             <div>
@@ -216,7 +216,7 @@ function Print3dContent({ session }: { session: ErpSession }) {
                 min={1}
                 value={printMinutes}
                 onChange={(e) => setPrintMinutes(e.target.value)}
-                className="mt-1 w-full rounded-md border border-border bg-bg px-3 py-2 text-sm font-mono"
+                className="mt-1 w-full rounded-xl border border-border bg-bg px-3 py-2 text-sm font-mono"
               />
             </div>
             <div>
@@ -226,7 +226,7 @@ function Print3dContent({ session }: { session: ErpSession }) {
                 min={0}
                 value={marginPct}
                 onChange={(e) => setMarginPct(e.target.value)}
-                className="mt-1 w-full rounded-md border border-border bg-bg px-3 py-2 text-sm font-mono"
+                className="mt-1 w-full rounded-xl border border-border bg-bg px-3 py-2 text-sm font-mono"
               />
             </div>
           </div>
@@ -244,7 +244,7 @@ function Print3dContent({ session }: { session: ErpSession }) {
 
           <button
             type="submit"
-            className="w-full rounded-md bg-accent px-4 py-2.5 text-sm font-semibold text-accent-foreground hover:bg-accent-hover"
+            className="w-full rounded-xl bg-accent px-4 py-2.5 text-sm font-semibold text-accent-foreground hover:bg-accent-hover"
           >
             Enviar para Fila de Impressão
           </button>
@@ -252,7 +252,7 @@ function Print3dContent({ session }: { session: ErpSession }) {
       </div>
 
       {/* Fila de Impressão */}
-      <div className="rounded-lg border border-border bg-surface p-5 space-y-3">
+      <div className="rounded-2xl border border-border bg-surface p-5 space-y-3">
         <div className="flex items-center gap-2 text-sm font-semibold">
           <Layers className="h-4 w-4 text-accent" />
           Fila de Impressoras ({jobs.length})

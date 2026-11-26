@@ -5,3 +5,4 @@ export * from './inventory-pos-fiscal.js';
 export * from './specialized.js';
 export * from './knowledge-ai.js';
 export * from './contracts-warranties.js';
+export * from './sourcing-ops.js';

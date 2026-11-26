@@ -4,6 +4,7 @@ import {
   varchar,
   text,
   integer,
+  boolean,
   jsonb,
   timestamp,
   uniqueIndex,
@@ -52,6 +53,10 @@ export const assets = pgTable(
     model: varchar('model', { length: 120 }),
     serialNumber: varchar('serial_number', { length: 120 }),
     qrToken: varchar('qr_token', { length: 64 }).notNull(),
+    acquiredFromStore: boolean('acquired_from_store').notNull().default(false),
+    purchasedAt: timestamp('purchased_at', { withTimezone: true }),
+    storeSaleRef: varchar('store_sale_ref', { length: 80 }),
+    vipDiscountPct: integer('vip_discount_pct').notNull().default(0),
     specs: jsonb('specs').$type<Record<string, unknown>>().notNull().default({}),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   },
@@ -79,6 +84,8 @@ export const serviceOrders = pgTable(
     preliminaryDiagnosis: text('preliminary_diagnosis'),
     devicePasswordEncrypted: text('device_password_encrypted'),
     devicePasswordHint: varchar('device_password_hint', { length: 120 }),
+    signatureDataUrl: text('signature_data_url'),
+    signatureSignedAt: timestamp('signature_signed_at', { withTimezone: true }),
     intakeChecklist: jsonb('intake_checklist')
       .$type<Record<string, unknown>>()
       .notNull()

@@ -84,7 +84,7 @@ function FiscalContent({ session }: { session: ErpSession }) {
 
   if (!enabled) {
     return (
-      <div className="rounded-lg border border-border bg-surface p-6 text-sm text-text-secondary">
+      <div className="rounded-2xl border border-border bg-surface p-6 text-sm text-text-secondary">
         O módulo <strong>Financeiro & Fiscal BR</strong> está desativado.
       </div>
     );
@@ -94,7 +94,7 @@ function FiscalContent({ session }: { session: ErpSession }) {
     <div className="space-y-6">
       <form
         onSubmit={handleSaveProfile}
-        className="rounded-lg border border-border bg-surface p-5 space-y-4"
+        className="rounded-2xl border border-border bg-surface p-5 space-y-4"
       >
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-semibold">Parametrização Tributária (Brasil)</h2>
@@ -106,7 +106,7 @@ function FiscalContent({ session }: { session: ErpSession }) {
             onChange={(e) =>
               setProfile((p) => ({ ...p, taxRegime: e.target.value as TaxRegime }))
             }
-            className="rounded-md border border-border bg-bg px-3 py-2 text-sm"
+            className="rounded-xl border border-border bg-bg px-3 py-2 text-sm"
           >
             <option value="SIMPLES_NACIONAL">Simples Nacional</option>
             <option value="MEI">MEI</option>
@@ -120,7 +120,7 @@ function FiscalContent({ session }: { session: ErpSession }) {
               setProfile((p) => ({ ...p, stateUf: e.target.value.toUpperCase() }))
             }
             placeholder="UF (ex: SP)"
-            className="rounded-md border border-border bg-bg px-3 py-2 text-sm font-mono"
+            className="rounded-xl border border-border bg-bg px-3 py-2 text-sm font-mono"
           />
           <select
             value={profile.providerName}
@@ -130,7 +130,7 @@ function FiscalContent({ session }: { session: ErpSession }) {
                 providerName: e.target.value as 'sandbox' | 'focus_nfe' | 'plugnotas',
               }))
             }
-            className="rounded-md border border-border bg-bg px-3 py-2 text-sm"
+            className="rounded-xl border border-border bg-bg px-3 py-2 text-sm"
           >
             <option value="sandbox">Adapter Sandbox Local</option>
             <option value="focus_nfe">Focus NFe</option>
@@ -138,7 +138,7 @@ function FiscalContent({ session }: { session: ErpSession }) {
           </select>
           <button
             type="submit"
-            className="rounded-md bg-accent px-4 py-2 text-sm font-semibold text-accent-foreground hover:bg-accent-hover"
+            className="rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-accent-foreground hover:bg-accent-hover"
           >
             Salvar Perfil Fiscal
           </button>
@@ -148,14 +148,14 @@ function FiscalContent({ session }: { session: ErpSession }) {
       <div className="space-y-3">
         <h2 className="text-sm font-semibold">Documentos Fiscais Emitidos</h2>
         {docs.length === 0 ? (
-          <div className="rounded-lg border border-border bg-surface p-6 text-sm text-text-secondary">
+          <div className="rounded-2xl border border-border bg-surface p-6 text-sm text-text-secondary">
             Nenhuma NF-e / NFC-e / NFS-e emitida ainda. Emita diretamente após uma venda no PDV!
           </div>
         ) : (
           docs.map((d) => (
             <div
               key={d.id}
-              className="rounded-lg border border-border bg-surface p-4 space-y-2 text-sm"
+              className="rounded-2xl border border-border bg-surface p-4 space-y-2 text-sm"
             >
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div>

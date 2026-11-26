@@ -6,6 +6,7 @@ import {
   Inject,
   NotFoundException,
   Param,
+  Patch,
   Post,
   Query,
 } from '@nestjs/common';
@@ -13,7 +14,7 @@ import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { randomBytes } from 'node:crypto';
 import QRCode from 'qrcode';
 import { assets, auditLogs, customers, desc, eq } from '@al/database';
-import { createAssetSchema } from '@al/shared';
+import { createAssetSchema, updateAssetVipSchema } from '@al/shared';
 import {
   CurrentUser,
   RequireModule,
@@ -105,6 +106,12 @@ export class AssetsController {
           model: input.model?.trim() || null,
           serialNumber: input.serialNumber?.trim() || null,
           qrToken,
+          acquiredFromStore: input.acquiredFromStore,
+          purchasedAt: input.acquiredFromStore ? new Date() : null,
+          storeSaleRef: input.storeSaleRef?.trim() || null,
+          vipDiscountPct: input.acquiredFromStore
+            ? input.vipDiscountPct || 20
+            : input.vipDiscountPct,
           specs: input.specs,
         })
         .returning();
@@ -124,5 +131,65 @@ export class AssetsController {
 
     const qrDataUrl = await QRCode.toDataURL(qrToken, { margin: 1, width: 160 });
     return { ...created, qrDataUrl };
+  }
+
+  @Patch(':id/vip')
+  @RequirePermission('os:write')
+  @ApiOperation({ summary: 'Marcar equipamento como adquirido na loja (Paciente VIP e desconto)' })
+  async updateVipStatus(
+    @Param('id') id: string,
+    @Body() body: unknown,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    const parsed = updateAssetVipSchema.safeParse(body);
+    if (!parsed.success) {
+      throw new BadRequestException(parsed.error.flatten());
+    }
+    const input = parsed.data;
+
+    return this.database.withTenant(user.organizationId, async (tx) => {
+      const [existing] = await tx
+        .select()
+        .from(assets)
+        .where(eq(assets.id, id))
+        .limit(1);
+
+      if (!existing) {
+        throw new NotFoundException('Equipamento não encontrado.');
+      }
+
+      const [updated] = await tx
+        .update(assets)
+        .set({
+          acquiredFromStore: input.acquiredFromStore,
+          storeSaleRef: input.storeSaleRef?.trim() || existing.storeSaleRef,
+          vipDiscountPct: input.acquiredFromStore ? input.vipDiscountPct : 0,
+          purchasedAt:
+            input.acquiredFromStore && !existing.purchasedAt
+              ? new Date()
+              : existing.purchasedAt,
+        })
+        .where(eq(assets.id, id))
+        .returning();
+
+      await tx.insert(auditLogs).values({
+        organizationId: user.organizationId,
+        actorType: 'human',
+        actorId: user.userId,
+        action: 'asset.vip_updated',
+        entityType: 'asset',
+        entityId: id,
+        beforeState: {
+          acquiredFromStore: existing.acquiredFromStore,
+          vipDiscountPct: existing.vipDiscountPct,
+        },
+        afterState: {
+          acquiredFromStore: updated!.acquiredFromStore,
+          vipDiscountPct: updated!.vipDiscountPct,
+        },
+      });
+
+      return updated!;
+    });
   }
 }

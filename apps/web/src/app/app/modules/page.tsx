@@ -59,7 +59,7 @@ function ModulesContent({ onChanged }: { onChanged: () => Promise<void> }) {
         {modules.map((mod) => (
           <div
             key={mod.code}
-            className="flex flex-col justify-between rounded-lg border border-border bg-surface p-4"
+            className="flex flex-col justify-between rounded-2xl border border-border bg-surface p-4"
           >
             <div>
               <div className="flex items-center justify-between gap-2">

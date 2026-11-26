@@ -139,7 +139,7 @@ function PosContent({ session }: { session: ErpSession }) {
 
   if (!enabled) {
     return (
-      <div className="rounded-lg border border-border bg-surface p-6 text-sm text-text-secondary">
+      <div className="rounded-2xl border border-border bg-surface p-6 text-sm text-text-secondary">
         O módulo <strong>Estoque, Compras & PDV</strong> está desativado.
       </div>
     );
@@ -175,7 +175,7 @@ function PosContent({ session }: { session: ErpSession }) {
                 type="button"
                 disabled={p.stockQty <= 0}
                 onClick={() => addToCart(p)}
-                className="flex flex-col justify-between rounded-lg border border-border bg-surface p-4 text-left transition-colors hover:border-accent disabled:opacity-45"
+                className="flex flex-col justify-between rounded-2xl border border-border bg-surface p-4 text-left transition-colors hover:border-accent disabled:opacity-45"
               >
                 <div>
                   <div className="flex items-center justify-between text-xs text-text-muted">
@@ -193,7 +193,7 @@ function PosContent({ session }: { session: ErpSession }) {
         </div>
 
         {/* Carrinho PDV */}
-        <div className="h-fit rounded-xl border border-border bg-surface p-5 space-y-4">
+        <div className="h-fit rounded-2xl border border-border bg-surface p-5 space-y-4">
           <div className="flex items-center gap-2 text-sm font-semibold">
             <ShoppingCart className="h-4 w-4 text-accent" />
             Carrinho Balcão ({cart.length})
@@ -294,7 +294,7 @@ function PosContent({ session }: { session: ErpSession }) {
             type="button"
             disabled={cart.length === 0}
             onClick={() => void handleCheckout()}
-            className="w-full rounded-md bg-accent px-4 py-2.5 text-sm font-semibold text-accent-foreground hover:bg-accent-hover disabled:opacity-50"
+            className="w-full rounded-xl bg-accent px-4 py-2.5 text-sm font-semibold text-accent-foreground hover:bg-accent-hover disabled:opacity-50"
           >
             Finalizar Venda
           </button>
@@ -302,7 +302,7 @@ function PosContent({ session }: { session: ErpSession }) {
       </div>
 
       {/* Últimas Vendas */}
-      <div className="rounded-lg border border-border bg-surface p-5 space-y-3">
+      <div className="rounded-2xl border border-border bg-surface p-5 space-y-3">
         <h2 className="text-sm font-semibold">Vendas Recentes</h2>
         <div className="space-y-2">
           {sales.map((s) => (
