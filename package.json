@@ -15,6 +15,8 @@
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
     "clean": "turbo run clean",
+    "db:migrate": "pnpm --filter @al/database db:migrate",
+    "db:seed": "pnpm --filter @al/database db:seed",
     "infra:up": "docker compose -f infra/docker/docker-compose.yml --env-file .env up -d",
     "infra:up:whatsapp": "docker compose -f infra/docker/docker-compose.yml --env-file .env --profile whatsapp up -d",
     "infra:up:ai": "docker compose -f infra/docker/docker-compose.yml --env-file .env --profile ai-local up -d",
