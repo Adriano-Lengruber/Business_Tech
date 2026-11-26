@@ -5,6 +5,7 @@ import { BullModule } from '@nestjs/bullmq';
 import { appEnv } from './config/env';
 import { DatabaseModule } from './database/database.module';
 import { StorageModule } from './storage/storage.module';
+import { AiModule } from './ai/ai.module';
 import { WhatsappModule } from './whatsapp/whatsapp.module';
 import {
   JwtAuthGuard,
@@ -49,6 +50,7 @@ import { HealthController } from './health/health.controller';
   imports: [
     DatabaseModule,
     StorageModule,
+    AiModule,
     BullModule.forRoot({
       connection: {
         url: appEnv.REDIS_URL,

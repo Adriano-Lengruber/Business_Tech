@@ -29,6 +29,7 @@ const envSchema = z.object({
   OLLAMA_BASE_URL: z.string().default('http://localhost:11434/v1'),
   OLLAMA_CHAT_MODEL: z.string().default('qwen2.5:7b'),
   OLLAMA_REASONING_MODEL: z.string().default('qwen2.5:14b'),
+  OLLAMA_EMBEDDING_MODEL: z.string().default('bge-m3'),
   WHISPER_BASE_URL: z.string().default('http://localhost:8000/v1'),
   WHATSAPP_PROVIDER: z.enum(['evolution', 'meta_cloud']).default('evolution'),
   EVOLUTION_API_URL: z.string().default('http://localhost:8080'),

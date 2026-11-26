@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { AlertTriangle, CheckCircle2, Clock, Wrench } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, Clock, Sparkles, Wrench } from 'lucide-react';
 import { OS_STATUS_LABELS, type OsStatus } from '@al/shared';
 import { ErpShell, type ErpSession } from '@/components/erp-shell';
 import { apiFetch } from '@/lib/api';
@@ -12,6 +12,16 @@ interface QueueMetrics {
   urgentCount: number;
   inBenchCount: number;
   readyForPickupCount: number;
+}
+
+interface DailyBriefing {
+  narrative: string;
+  highlights: Array<{
+    label: string;
+    value: string;
+    href: string;
+    severity: string;
+  }>;
 }
 
 interface ServiceOrderRow {
@@ -28,27 +38,37 @@ interface ServiceOrderRow {
 
 function DashboardContent({ session }: { session: ErpSession }) {
   const [queue, setQueue] = useState<QueueMetrics | null>(null);
+  const [briefing, setBriefing] = useState<DailyBriefing | null>(null);
   const [orders, setOrders] = useState<ServiceOrderRow[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   const hasOs = session.enabledModules.includes('mod-service-orders');
+  const hasAi = session.enabledModules.includes('mod-ai-agents');
 
   useEffect(() => {
     const token = window.localStorage.getItem('al_token');
-    if (!token || !hasOs) return;
+    if (!token) return;
 
-    Promise.all([
-      apiFetch<QueueMetrics>('/service-orders/dashboard-queue', { token }),
-      apiFetch<ServiceOrderRow[]>('/service-orders', { token }),
-    ])
-      .then(([q, list]) => {
-        setQueue(q);
-        setOrders(list);
-      })
-      .catch((err) => {
-        setError(err instanceof Error ? err.message : 'Erro ao carregar fila');
-      });
-  }, [hasOs]);
+    if (hasOs) {
+      Promise.all([
+        apiFetch<QueueMetrics>('/service-orders/dashboard-queue', { token }),
+        apiFetch<ServiceOrderRow[]>('/service-orders', { token }),
+      ])
+        .then(([q, list]) => {
+          setQueue(q);
+          setOrders(list);
+        })
+        .catch((err) => {
+          setError(err instanceof Error ? err.message : 'Erro ao carregar fila');
+        });
+    }
+
+    if (hasAi) {
+      apiFetch<DailyBriefing>('/ai/briefing', { token })
+        .then(setBriefing)
+        .catch(() => undefined);
+    }
+  }, [hasOs, hasAi]);
 
   return (
     <div className="space-y-6">
@@ -56,6 +76,32 @@ function DashboardContent({ session }: { session: ErpSession }) {
         <div className="rounded-md border border-danger/40 bg-danger/10 p-3 text-sm text-danger">
           {error}
         </div>
+      )}
+
+      {briefing && (
+        <section className="rounded-xl border border-accent/30 bg-surface p-5 space-y-3">
+          <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-accent">
+            <Sparkles className="h-4 w-4" />
+            Daily AI Briefing Executivo
+          </div>
+          <p className="text-sm leading-relaxed text-text-primary">
+            {briefing.narrative}
+          </p>
+          <div className="grid gap-2.5 pt-1 sm:grid-cols-2 lg:grid-cols-4">
+            {briefing.highlights.map((h) => (
+              <Link
+                key={h.label}
+                href={h.href}
+                className="rounded-md border border-border bg-bg px-3 py-2 text-xs transition-colors hover:border-accent"
+              >
+                <span className="block text-text-muted">{h.label}</span>
+                <span className="mt-0.5 block font-mono text-sm font-bold text-text-primary">
+                  {h.value}
+                </span>
+              </Link>
+            ))}
+          </div>
+        </section>
       )}
 
       {queue && (
@@ -182,7 +228,7 @@ export default function AppDashboardPage() {
   return (
     <ErpShell
       title="Modo Solo Operator — Minha Fila de Hoje"
-      subtitle="Visão unificada de atendimentos, WhatsApp e bancada"
+      subtitle="Visão unificada de atendimentos, WhatsApp, Briefing IA e bancada"
     >
       {(session) => <DashboardContent session={session} />}
     </ErpShell>

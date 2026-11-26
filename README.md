@@ -41,7 +41,7 @@ Cada organização (`tenant`) ativa apenas os módulos necessários para o seu n
 |---|---|---|---|
 | `core` | **Núcleo CRM & Inbox** *(Obrigatório)* | Multi-tenant RLS, Auth/RBAC, Clientes PF/PJ, Timeline Unificada, Inbox Omnichannel e Portal do Cliente. | Implementado (Fase 0/1) |
 | `mod-service-orders` | **Assistência Técnica & OS** | Balcão expresso, QR Code, S3, Termo PDF, Diagnóstico IA, Orçamentos 3 Tiers e Portal com aceite digital. | Implementado (Fase 1–2) |
-| `mod-ai-agents` | **Agentes de IA & WhatsApp** | AI Gateway local-first, Adapter WhatsApp (Evolution/Sandbox), BullMQ Debounce, Handoff e Copiloto Diagnóstico. | MVP Implementado (Fase 1–2) |
+| `mod-ai-agents` | **Agentes de IA & WhatsApp** | AI Gateway local-first, WhatsApp Adapter, BullMQ Debounce, Handoff, RAG híbrido (`pgvector`+RRF), Briefing Diário e Copiloto `Ctrl+K`. | Implementado (Fase 1–5) |
 | `mod-inventory-pos` | **Estoque, Compras & PDV** | Catálogo multi-segmento, ledger de estoque, alertas, fornecedores/compras, baixa na OS e PDV rápido. | Implementado (Fase 3) |
 | `mod-finance-fiscal` | **Financeiro & Fiscal BR** | Contas a pagar/receber, fluxo líquido, PIX Asaas/Sandbox com webhook e camada fiscal NF-e/NFC-e/NFS-e + IA. | Implementado (Fase 2–3) |
 | `mod-3d-print` | **Estúdio de Impressão 3D** | Visualizador STL/3MF Three.js, calculadora de custo (material/energia/máquina), filamentos e fila. | Implementado (Fase 4) |
