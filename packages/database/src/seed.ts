@@ -15,6 +15,9 @@ import {
   assets,
   serviceOrders,
   serviceOrderEvents,
+  osDiagnostics,
+  quotes,
+  quoteItems,
   conversations,
   messages,
 } from './schema/index.js';
@@ -317,6 +320,101 @@ async function seed() {
             },
           ])
           .onConflictDoNothing();
+      }
+    }
+
+    const [demoOs] = await db
+      .select()
+      .from(serviceOrders)
+      .where(
+        and(
+          eq(serviceOrders.organizationId, orgId),
+          eq(serviceOrders.code, 'OS-2026-0001'),
+        ),
+      )
+      .limit(1);
+
+    if (demoOs) {
+      const existingDiag = await db
+        .select({ id: osDiagnostics.id })
+        .from(osDiagnostics)
+        .where(eq(osDiagnostics.serviceOrderId, demoOs.id))
+        .limit(1);
+
+      if (existingDiag.length === 0) {
+        await db.insert(osDiagnostics).values({
+          organizationId: orgId,
+          serviceOrderId: demoOs.id,
+          category: 'superaquecimento',
+          observedFacts:
+            'CPU atingindo 99°C em idle + saída de ar obstruída por poeira compactada; pasta térmica original completamente ressecada.',
+          testsPerformed: [
+            { name: 'Teste de estresse térmico (10 min)', passed: false, notes: 'Thermal throttling em 99°C' },
+            { name: 'Verificação SMART NVMe', passed: true, notes: 'Saúde 94%' },
+            { name: 'Teste de memória RAM', passed: true },
+          ],
+          aiHypotheses: [
+            'Limpeza interna + troca por pasta térmica de alta condutividade resolve o desligamento.',
+            'Caso o cooler apresente ruído após limpeza, avaliar substituição da ventoinha.',
+          ],
+          finalDiagnosis:
+            'Obstrução severa do sistema de arrefecimento e degradação da pasta térmica.',
+          confidenceLevel: 'high',
+          clientExplanation:
+            'Seu notebook está esquentando e desligando por proteção porque a saída de ar acumulou poeira e a pasta térmica perdeu eficiência. Recomendamos limpeza completa e renovação térmica.',
+          createdByUserId: userId,
+        });
+      }
+
+      const existingQuotes = await db
+        .select({ id: quotes.id })
+        .from(quotes)
+        .where(eq(quotes.serviceOrderId, demoOs.id))
+        .limit(1);
+
+      if (existingQuotes.length === 0) {
+        const validUntil = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+        const [qRec] = await db
+          .insert(quotes)
+          .values({
+            organizationId: orgId,
+            serviceOrderId: demoOs.id,
+            code: 'ORC-2026-0001',
+            tier: 'recommended',
+            status: 'SENT',
+            warrantyDays: 90,
+            validUntil,
+            paymentTerms: 'PIX com 5% de desconto ou até 3x sem juros',
+            clientNotes: 'Inclui limpeza ultrassônica das aletas e pasta térmica de prata.',
+            subtotalCents: 28000,
+            discountCents: 0,
+            totalCents: 28000,
+            estimatedCostCents: 4500,
+          })
+          .returning({ id: quotes.id });
+
+        await db.insert(quoteItems).values([
+          {
+            organizationId: orgId,
+            quoteId: qRec!.id,
+            itemType: 'labor',
+            description: 'Limpeza técnica completa do sistema de arrefecimento',
+            quantity: 1,
+            unitCostCents: 0,
+            unitPriceCents: 18000,
+            totalPriceCents: 18000,
+          },
+          {
+            organizationId: orgId,
+            quoteId: qRec!.id,
+            itemType: 'part',
+            description: 'Pasta térmica alta condutividade (aplicação CPU + GPU)',
+            quantity: 1,
+            unitCostCents: 4500,
+            unitPriceCents: 10000,
+            totalPriceCents: 10000,
+          },
+        ]);
       }
     }
 

@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
   Boxes,
+  DollarSign,
   LayoutDashboard,
   LogOut,
   MessageSquare,
@@ -13,6 +14,7 @@ import {
 } from 'lucide-react';
 import type { ModuleCode } from '@al/shared';
 import { apiFetch, ApiError } from '@/lib/api';
+import { CommandPalette } from './command-palette';
 import { ThemeToggle } from './theme-provider';
 
 export interface ErpSession {
@@ -94,6 +96,12 @@ export function ErpShell({
       show: true,
     },
     {
+      href: '/app/finance',
+      label: 'Financeiro & PIX',
+      icon: DollarSign,
+      show: session.enabledModules.includes('mod-finance-fiscal'),
+    },
+    {
       href: '/app/modules',
       label: 'Módulos SaaS',
       icon: Boxes,
@@ -169,6 +177,7 @@ export function ErpShell({
             )}
           </div>
           <div className="flex items-center gap-2">
+            <CommandPalette />
             {session.enabledModules.includes('mod-service-orders') && (
               <Link
                 href="/app/os/new"

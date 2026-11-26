@@ -1,9 +1,9 @@
 'use client';
 
-import { Suspense, useEffect, useState } from 'react';
+import { Suspense, useCallback, useEffect, useState } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
-import { CheckCircle2, Clock, Laptop, ShieldCheck } from 'lucide-react';
-import { OS_STATUS_LABELS, type OsStatus } from '@al/shared';
+import { CheckCircle2, Clock, Copy, Laptop, ShieldCheck } from 'lucide-react';
+import { OS_STATUS_LABELS, QUOTE_TIER_LABELS, type OsStatus, type QuoteTier } from '@al/shared';
 import { apiFetch } from '@/lib/api';
 import { ThemeToggle } from '@/components/theme-provider';
 
@@ -22,6 +22,34 @@ interface PortalData {
     model: string | null;
     qrToken: string;
   } | null;
+  diagnostic: {
+    finalDiagnosis: string | null;
+    clientExplanation: string | null;
+  } | null;
+  quotes: Array<{
+    id: string;
+    code: string;
+    tier: QuoteTier;
+    status: string;
+    warrantyDays: number;
+    paymentTerms: string;
+    clientNotes: string | null;
+    totalCents: number;
+    acceptanceHash: string | null;
+    items: Array<{
+      id: string;
+      description: string;
+      quantity: number;
+      totalPriceCents: number;
+    }>;
+  }>;
+  payments: Array<{
+    id: string;
+    description: string;
+    status: string;
+    amountCents: number;
+    pixCopyPaste: string | null;
+  }>;
   events: Array<{
     id: string;
     eventType: string;
@@ -37,6 +65,13 @@ interface PortalData {
   }>;
 }
 
+function formatBrl(cents: number) {
+  return (cents / 100).toLocaleString('pt-BR', {
+    style: 'currency',
+    currency: 'BRL',
+  });
+}
+
 function CustomerPortalContent() {
   const params = useParams<{ code: string }>();
   const searchParams = useSearchParams();
@@ -44,8 +79,10 @@ function CustomerPortalContent() {
 
   const [data, setData] = useState<PortalData | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [decidingId, setDecidingId] = useState<string | null>(null);
+  const [copiedPix, setCopiedPix] = useState(false);
 
-  useEffect(() => {
+  const loadPortal = useCallback(() => {
     if (!params.code || !token) {
       setError('Link de acompanhamento inválido ou incompleto.');
       return;
@@ -62,6 +99,31 @@ function CustomerPortalContent() {
         ),
       );
   }, [params.code, token]);
+
+  useEffect(() => {
+    loadPortal();
+  }, [loadPortal]);
+
+  async function handleDecision(
+    quoteId: string,
+    decision: 'APPROVED' | 'REJECTED',
+  ) {
+    setDecidingId(quoteId);
+    try {
+      await apiFetch(
+        `/portal/${encodeURIComponent(params.code)}/quotes/${quoteId}/decide?token=${encodeURIComponent(token)}`,
+        {
+          method: 'POST',
+          body: JSON.stringify({ decision, paymentMethod: 'pix' }),
+        },
+      );
+      loadPortal();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erro ao registrar decisão');
+    } finally {
+      setDecidingId(null);
+    }
+  }
 
   return (
     <div className="min-h-screen bg-bg px-4 py-6 text-text-primary">
@@ -96,7 +158,7 @@ function CustomerPortalContent() {
               </div>
 
               <p className="mt-3 text-sm text-text-secondary">
-                Olá <strong>{data.customerFirstName}</strong>, acompanhe abaixo o status em tempo real do seu atendimento.
+                Olá <strong>{data.customerFirstName}</strong>, acompanhe abaixo o status e orçamento do seu atendimento.
               </p>
 
               {data.asset && (
@@ -117,17 +179,117 @@ function CustomerPortalContent() {
 
               <div className="mt-4 space-y-2 text-sm">
                 <p className="text-text-secondary">
-                  <strong className="text-text-primary">Sintomas relatados:</strong>{' '}
+                  <strong className="text-text-primary">Sintomas:</strong>{' '}
                   {data.reportedSymptoms}
                 </p>
-                {data.preliminaryDiagnosis && (
-                  <p className="text-text-secondary">
-                    <strong className="text-text-primary">Pré-avaliação:</strong>{' '}
-                    {data.preliminaryDiagnosis}
-                  </p>
+                {data.diagnostic?.clientExplanation && (
+                  <div className="rounded-lg border border-accent/25 bg-accent/5 p-3 text-xs text-text-secondary">
+                    <strong className="block text-text-primary">
+                      Explicação Técnica do Diagnóstico:
+                    </strong>
+                    {data.diagnostic.clientExplanation}
+                  </div>
                 )}
               </div>
             </div>
+
+            {data.quotes.map((q) => (
+              <div
+                key={q.id}
+                className="rounded-xl border border-border bg-surface p-5 space-y-3"
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="font-mono text-xs font-semibold text-accent">
+                      {q.code} · Proposta {QUOTE_TIER_LABELS[q.tier] ?? q.tier}
+                    </span>
+                    <p className="font-mono text-xl font-bold">
+                      {formatBrl(q.totalCents)}
+                    </p>
+                  </div>
+                  <span className="rounded bg-surface-muted px-2.5 py-1 font-mono text-xs font-semibold">
+                    {q.status}
+                  </span>
+                </div>
+
+                <ul className="space-y-1.5 border-y border-border py-3 text-sm">
+                  {q.items.map((it) => (
+                    <li key={it.id} className="flex justify-between gap-2">
+                      <span className="text-text-secondary">
+                        {it.quantity}x {it.description}
+                      </span>
+                      <span className="font-mono font-medium">
+                        {formatBrl(it.totalPriceCents)}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+
+                <p className="text-xs text-text-muted">
+                  Garantia: {q.warrantyDays} dias · {q.paymentTerms}
+                </p>
+
+                {q.status === 'SENT' && (
+                  <div className="flex gap-2 pt-1">
+                    <button
+                      type="button"
+                      disabled={decidingId === q.id}
+                      onClick={() => void handleDecision(q.id, 'APPROVED')}
+                      className="flex-1 rounded-md bg-success px-4 py-2.5 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50"
+                    >
+                      {decidingId === q.id
+                        ? 'Registrando...'
+                        : 'Aprovar Orçamento (Gerar PIX)'}
+                    </button>
+                    <button
+                      type="button"
+                      disabled={decidingId === q.id}
+                      onClick={() => void handleDecision(q.id, 'REJECTED')}
+                      className="rounded-md border border-border px-4 py-2.5 text-sm font-medium text-text-secondary hover:bg-surface-muted"
+                    >
+                      Recusar
+                    </button>
+                  </div>
+                )}
+
+                {q.acceptanceHash && (
+                  <p className="font-mono text-[11px] text-success">
+                    Aceite digital registrado · Hash: {q.acceptanceHash.slice(0, 24)}...
+                  </p>
+                )}
+              </div>
+            ))}
+
+            {data.payments.map((p) => (
+              <div
+                key={p.id}
+                className="rounded-xl border border-accent/40 bg-surface p-5 space-y-2"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-semibold">{p.description}</span>
+                  <span className="font-mono text-sm font-bold text-accent">
+                    {formatBrl(p.amountCents)}
+                  </span>
+                </div>
+                <p className="font-mono text-xs text-text-muted">
+                  Status pagamento: {p.status}
+                </p>
+                {p.pixCopyPaste && p.status === 'PENDING' && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      void navigator.clipboard.writeText(p.pixCopyPaste!);
+                      setCopiedPix(true);
+                      setTimeout(() => setCopiedPix(false), 2000);
+                    }}
+                    className="inline-flex items-center gap-2 rounded-md bg-accent px-4 py-2 font-mono text-xs font-semibold text-accent-foreground"
+                  >
+                    <Copy className="h-3.5 w-3.5" />
+                    {copiedPix ? 'PIX Copiado!' : 'Copiar Código PIX'}
+                  </button>
+                )}
+              </div>
+            ))}
 
             <div className="rounded-xl border border-border bg-surface p-5">
               <h2 className="text-sm font-semibold">Histórico de Atualizações</h2>
@@ -155,32 +317,6 @@ function CustomerPortalContent() {
                 ))}
               </div>
             </div>
-
-            {data.attachments.length > 0 && (
-              <div className="rounded-xl border border-border bg-surface p-5">
-                <h2 className="text-sm font-semibold">Evidências Registradas na Entrada</h2>
-                <div className="mt-3 grid grid-cols-2 gap-3">
-                  {data.attachments.map((att) =>
-                    att.signedUrl ? (
-                      <a
-                        key={att.id}
-                        href={att.signedUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="overflow-hidden rounded-md border border-border"
-                      >
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img
-                          src={att.signedUrl}
-                          alt={att.filename}
-                          className="h-32 w-full object-cover"
-                        />
-                      </a>
-                    ) : null,
-                  )}
-                </div>
-              </div>
-            )}
 
             <p className="flex items-center justify-center gap-1.5 text-center text-xs text-text-muted">
               <ShieldCheck className="h-4 w-4 text-success" />

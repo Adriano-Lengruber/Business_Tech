@@ -40,10 +40,10 @@ Cada organização (`tenant`) ativa apenas os módulos necessários para o seu n
 | Código | Módulo | O que entrega | Status |
 |---|---|---|---|
 | `core` | **Núcleo CRM & Inbox** *(Obrigatório)* | Multi-tenant RLS, Auth/RBAC, Clientes PF/PJ, Timeline Unificada, Inbox Omnichannel e Portal do Cliente. | Implementado (Fase 0/1) |
-| `mod-service-orders` | **Assistência Técnica & OS** | Balcão expresso, Ativos com QR Code, fotos S3, Termo PDF, Workflow de 22 status, Portal do Cliente. | MVP Implementado (Fase 1) |
-| `mod-ai-agents` | **Agentes de IA & WhatsApp** | AI Gateway local-first (Ollama), WhatsApp Adapter (Evolution/Sandbox), BullMQ Debounce e Handoff Humano. | MVP Implementado (Fase 1) |
+| `mod-service-orders` | **Assistência Técnica & OS** | Balcão expresso, QR Code, S3, Termo PDF, Diagnóstico IA, Orçamentos 3 Tiers e Portal com aceite digital. | Implementado (Fase 1–2) |
+| `mod-ai-agents` | **Agentes de IA & WhatsApp** | AI Gateway local-first, Adapter WhatsApp (Evolution/Sandbox), BullMQ Debounce, Handoff e Copiloto Diagnóstico. | MVP Implementado (Fase 1–2) |
 | `mod-inventory-pos` | **Estoque, Compras & PDV** | Catálogo multi-segmento, controle por lote/serial, fornecedores e frente de caixa (PDV). | Planejado (Fase 3) |
-| `mod-finance-fiscal` | **Financeiro & Fiscal BR** | Contas a pagar/receber, DRE gerencial, gateway Asaas (PIX/Boleto/Cartão) e camada fiscal NF-e/NFS-e/NFC-e. | Planejado (Fase 2–3) |
+| `mod-finance-fiscal` | **Financeiro & Fiscal BR** | Contas a pagar/receber, fluxo líquido, PIX Asaas/Sandbox com webhook idempotente (camada fiscal na Fase 3). | Financeiro Base (Fase 2) |
 | `mod-3d-print` | **Estúdio de Impressão 3D** | Biblioteca STL/3MF com preview Three.js, cálculo automático de custo (filamento + energia + máquina) e fila de impressoras. | Planejado (Fase 5) |
 | `mod-projects-dev` | **Projetos & Software** | Kanban/Sprints, apontamento de horas (*timesheet*), marcos e contratos de horas mensais (*retainer*). | Planejado (Fase 5) |
 | `mod-social-growth` | **Social Media & Growth IA** | Calendário editorial, geração de posts a partir de entregas reais, agendamento, métricas e conversão de comentários/DMs em Leads. | Planejado (Fase 5) |

@@ -13,7 +13,12 @@ import {
   customers,
   desc,
   eq,
+  financialTransactions,
+  inArray,
   organizations,
+  osDiagnostics,
+  quoteItems,
+  quotes,
   serviceOrderAttachments,
   serviceOrderEvents,
   serviceOrders,
@@ -387,6 +392,88 @@ export class ServiceOrdersService {
     }
 
     const detail = await this.getById(match.organizationId, match.id);
+
+    const extras = await this.database.withTenant(match.organizationId, async (tx) => {
+      const [latestDiag] = await tx
+        .select({
+          finalDiagnosis: osDiagnostics.finalDiagnosis,
+          clientExplanation: osDiagnostics.clientExplanation,
+          updatedAt: osDiagnostics.updatedAt,
+        })
+        .from(osDiagnostics)
+        .where(eq(osDiagnostics.serviceOrderId, match.id))
+        .orderBy(desc(osDiagnostics.createdAt))
+        .limit(1);
+
+      const portalQuotes = await tx
+        .select()
+        .from(quotes)
+        .where(
+          and(
+            eq(quotes.serviceOrderId, match.id),
+            inArray(quotes.status, ['SENT', 'APPROVED', 'REJECTED']),
+          ),
+        )
+        .orderBy(desc(quotes.createdAt));
+
+      const qItems =
+        portalQuotes.length > 0
+          ? await tx
+              .select()
+              .from(quoteItems)
+              .where(
+                inArray(
+                  quoteItems.quoteId,
+                  portalQuotes.map((q) => q.id),
+                ),
+              )
+          : [];
+
+      const payments = await tx
+        .select({
+          id: financialTransactions.id,
+          description: financialTransactions.description,
+          status: financialTransactions.status,
+          amountCents: financialTransactions.amountCents,
+          paymentMethod: financialTransactions.paymentMethod,
+          pixCopyPaste: financialTransactions.pixCopyPaste,
+          dueDate: financialTransactions.dueDate,
+        })
+        .from(financialTransactions)
+        .where(eq(financialTransactions.serviceOrderId, match.id))
+        .orderBy(desc(financialTransactions.createdAt));
+
+      return {
+        latestDiag: latestDiag ?? null,
+        quotes: portalQuotes.map((q) => ({
+          id: q.id,
+          code: q.code,
+          tier: q.tier,
+          status: q.status,
+          warrantyDays: q.warrantyDays,
+          validUntil: q.validUntil,
+          paymentTerms: q.paymentTerms,
+          clientNotes: q.clientNotes,
+          subtotalCents: q.subtotalCents,
+          discountCents: q.discountCents,
+          totalCents: q.totalCents,
+          acceptedAt: q.acceptedAt,
+          acceptanceHash: q.acceptanceHash,
+          items: qItems
+            .filter((i) => i.quoteId === q.id)
+            .map((i) => ({
+              id: i.id,
+              itemType: i.itemType,
+              description: i.description,
+              quantity: i.quantity,
+              unitPriceCents: i.unitPriceCents,
+              totalPriceCents: i.totalPriceCents,
+            })),
+        })),
+        payments,
+      };
+    });
+
     return {
       organizationName: detail.orgName,
       code: detail.os.code,
@@ -405,6 +492,9 @@ export class ServiceOrdersService {
             qrToken: detail.asset.qrToken,
           }
         : null,
+      diagnostic: extras.latestDiag,
+      quotes: extras.quotes,
+      payments: extras.payments,
       events: detail.events.map((e) => ({
         id: e.id,
         eventType: e.eventType,
