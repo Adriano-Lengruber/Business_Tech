@@ -36,6 +36,8 @@ import {
   maintenanceContracts,
   sourcingRequests,
   sourcingOffers,
+  checklistTemplates,
+  automationRules,
 } from './schema/index.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -1007,6 +1009,93 @@ async function seed() {
           paymentTerms: 'PIX / Cartão à vista',
           sourceUrl: 'https://www.mercadolivre.com.br/',
           notes: 'Frete grátis Full amanhã; ideal para reposição rápida de bancada.',
+        },
+      ]);
+    }
+
+    // Seed Fase 9: Checklists por categoria + Motor de Regras de Automação
+    const existingChecklists = await db
+      .select({ id: checklistTemplates.id })
+      .from(checklistTemplates)
+      .where(eq(checklistTemplates.organizationId, orgId))
+      .limit(1);
+
+    if (existingChecklists.length === 0) {
+      await db.insert(checklistTemplates).values([
+        {
+          organizationId: orgId,
+          category: 'notebook',
+          title: 'Checklist Bancada — Notebook',
+          blockClosingIfIncomplete: true,
+          items: [
+            { key: 'stress_test', label: 'Teste de estresse térmico (10 min) aprovado', required: true },
+            { key: 'battery_charge', label: 'Circuito de carga e bateria validados', required: true },
+            { key: 'keyboard_io', label: 'Teclado, touchpad, portas USB e HDMI testados', required: true },
+            { key: 'clean_chassis', label: 'Higienização externa e lacre técnico', required: false },
+          ],
+        },
+        {
+          organizationId: orgId,
+          category: 'desktop',
+          title: 'Checklist Bancada — Desktop / PC Gamer',
+          blockClosingIfIncomplete: true,
+          items: [
+            { key: 'memtest', label: 'Teste de estabilidade Memória RAM / XMP', required: true },
+            { key: 'cable_mgmt', label: 'Organização de cabos e fluxo de ar conferidos', required: true },
+            { key: 'bios_temps', label: 'Temperaturas CPU/GPU em carga dentro da faixa', required: true },
+          ],
+        },
+        {
+          organizationId: orgId,
+          category: 'impressora-3d',
+          title: 'Checklist Bancada — Impressora 3D',
+          blockClosingIfIncomplete: true,
+          items: [
+            { key: 'bed_level', label: 'Nivelamento da mesa e Z-offset calibrados', required: true },
+            { key: 'extrusion', label: 'Teste de extrusão e retração sem entupimento', required: true },
+            { key: 'print_sample', label: 'Peça de teste impressa com sucesso', required: false },
+          ],
+        },
+      ]);
+    }
+
+    const existingRules = await db
+      .select({ id: automationRules.id })
+      .from(automationRules)
+      .where(eq(automationRules.organizationId, orgId))
+      .limit(1);
+
+    if (existingRules.length === 0) {
+      await db.insert(automationRules).values([
+        {
+          organizationId: orgId,
+          name: 'Follow-up de Orçamento Pendente (48h)',
+          triggerEvent: 'quote.pending_followup',
+          channel: 'whatsapp',
+          delayHours: 48,
+          templateText:
+            'Olá! Passando para saber se conseguiu analisar o orçamento do seu equipamento. Qualquer dúvida técnica estou à disposição!',
+          isActive: true,
+        },
+        {
+          organizationId: orgId,
+          name: 'Lembrete de Retirada (OS Pronta há 24h)',
+          triggerEvent: 'os.ready_pickup_reminder',
+          channel: 'whatsapp',
+          delayHours: 24,
+          templateText:
+            'Seu equipamento já está pronto e testado na bancada aguardando retirada em nossa loja.',
+          isActive: true,
+        },
+        {
+          organizationId: orgId,
+          name: 'Alerta Preventivo de Estoque Crítico',
+          triggerEvent: 'stock.low_alert',
+          channel: 'internal_alert',
+          delayHours: 0,
+          templateText:
+            'Item abaixo do estoque mínimo — abrir cotação comparativa B2B vs Marketplace PF.',
+          isActive: true,
         },
       ]);
     }

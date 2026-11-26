@@ -20,6 +20,7 @@ import {
   ShieldCheck,
   ShoppingCart,
   Wrench,
+  Zap,
 } from 'lucide-react';
 import type { ModuleCode } from '@al/shared';
 import { apiFetch, ApiError } from '@/lib/api';
@@ -120,6 +121,13 @@ export function ErpShell({
       href: '/app/inbox',
       label: 'Inbox WhatsApp',
       icon: MessageSquare,
+      group: 'Operação',
+      show: true,
+    },
+    {
+      href: '/app/automations',
+      label: 'Automações',
+      icon: Zap,
       group: 'Operação',
       show: true,
     },

@@ -23,6 +23,11 @@ import {
   BenchTimerWidget,
   type OsTimersState,
 } from '@/components/os/bench-timer-widget';
+import {
+  ChecklistTab,
+  type ChecklistTemplateRow,
+  type OsChecklistState,
+} from '@/components/os/checklist-tab';
 import { apiFetch } from '@/lib/api';
 
 interface OsDetail {
@@ -102,7 +107,7 @@ function formatBrl(cents: number) {
 function OsDetailContent() {
   const params = useParams<{ id: string }>();
   const [tab, setTab] = useState<
-    'overview' | 'diagnostic' | 'hardware' | 'quotes' | 'warranty'
+    'overview' | 'diagnostic' | 'checklist' | 'hardware' | 'quotes' | 'warranty'
   >('overview');
   const [detail, setDetail] = useState<OsDetail | null>(null);
   const [diagnostics, setDiagnostics] = useState<DiagnosticRow[]>([]);
@@ -110,6 +115,10 @@ function OsDetailContent() {
   const [hwData, setHwData] = useState<HardwareDiffResponse | null>(null);
   const [warranties, setWarranties] = useState<WarrantyRow[]>([]);
   const [timers, setTimers] = useState<OsTimersState | null>(null);
+  const [osChecklist, setOsChecklist] = useState<OsChecklistState | null>(null);
+  const [checklistTemplates, setChecklistTemplates] = useState<
+    ChecklistTemplateRow[]
+  >([]);
 
   const [nextStatus, setNextStatus] = useState<OsStatus>('DIAGNOSIS');
   const [note, setNote] = useState('');
@@ -151,19 +160,27 @@ function OsDetailContent() {
   const load = useCallback(async () => {
     const token = window.localStorage.getItem('al_token');
     if (!token || !params.id) return;
-    const [data, diags, qList, hw, warList, timerState] = await Promise.all([
-      apiFetch<OsDetail>(`/service-orders/${params.id}`, { token }),
-      apiFetch<DiagnosticRow[]>(`/service-orders/${params.id}/diagnostics`, { token }),
-      apiFetch<QuoteRow[]>(`/service-orders/${params.id}/quotes`, { token }),
-      apiFetch<HardwareDiffResponse>(
-        `/service-orders/${params.id}/hardware-snapshots`,
-        { token },
-      ),
-      apiFetch<WarrantyRow[]>(`/service-orders/${params.id}/warranties`, {
-        token,
-      }),
-      apiFetch<OsTimersState>(`/service-orders/${params.id}/timers`, { token }),
-    ]);
+    const [data, diags, qList, hw, warList, timerState, chk, tplList] =
+      await Promise.all([
+        apiFetch<OsDetail>(`/service-orders/${params.id}`, { token }),
+        apiFetch<DiagnosticRow[]>(`/service-orders/${params.id}/diagnostics`, {
+          token,
+        }),
+        apiFetch<QuoteRow[]>(`/service-orders/${params.id}/quotes`, { token }),
+        apiFetch<HardwareDiffResponse>(
+          `/service-orders/${params.id}/hardware-snapshots`,
+          { token },
+        ),
+        apiFetch<WarrantyRow[]>(`/service-orders/${params.id}/warranties`, {
+          token,
+        }),
+        apiFetch<OsTimersState>(`/service-orders/${params.id}/timers`, { token }),
+        apiFetch<OsChecklistState | null>(
+          `/service-orders/${params.id}/checklist`,
+          { token },
+        ),
+        apiFetch<ChecklistTemplateRow[]>('/checklists/templates', { token }),
+      ]);
     setDetail(data);
     setNextStatus(data.os.status);
     setDiagnostics(diags);
@@ -171,6 +188,8 @@ function OsDetailContent() {
     setHwData(hw);
     setWarranties(warList);
     setTimers(timerState);
+    setOsChecklist(chk);
+    setChecklistTemplates(tplList);
   }, [params.id]);
 
   useEffect(() => {
@@ -181,17 +200,26 @@ function OsDetailContent() {
     e.preventDefault();
     const token = window.localStorage.getItem('al_token');
     if (!token || !params.id) return;
-    await apiFetch(`/service-orders/${params.id}/status`, {
-      method: 'PATCH',
-      token,
-      body: JSON.stringify({
-        status: nextStatus,
-        note: note || undefined,
-        notifyWhatsapp: notify,
-      }),
-    });
-    setNote('');
-    await load();
+    setError(null);
+    try {
+      await apiFetch(`/service-orders/${params.id}/status`, {
+        method: 'PATCH',
+        token,
+        body: JSON.stringify({
+          status: nextStatus,
+          note: note || undefined,
+          notifyWhatsapp: notify,
+        }),
+      });
+      setNote('');
+      await load();
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : 'Não foi possível atualizar o status da OS.',
+      );
+    }
   }
 
   async function handleDownloadPdf() {
@@ -369,6 +397,14 @@ function OsDetailContent() {
           { id: 'overview', label: 'Geral & Timeline' },
           { id: 'diagnostic', label: `Diagnóstico (${diagnostics.length})` },
           {
+            id: 'checklist',
+            label: osChecklist
+              ? osChecklist.completedRequired
+                ? 'Checklist ✓'
+                : 'Checklist (Pendente)'
+              : 'Checklist',
+          },
+          {
             id: 'hardware',
             label: `Hardware & Laudo (${hwData?.snapshots.length ?? 0})`,
           },
@@ -383,6 +419,7 @@ function OsDetailContent() {
                 t.id as
                   | 'overview'
                   | 'diagnostic'
+                  | 'checklist'
                   | 'hardware'
                   | 'quotes'
                   | 'warranty',
@@ -868,6 +905,15 @@ function OsDetailContent() {
 
       {tab === 'hardware' && params.id && (
         <HardwareCompareTab osId={params.id} data={hwData} onReload={load} />
+      )}
+
+      {tab === 'checklist' && params.id && (
+        <ChecklistTab
+          osId={params.id}
+          checklist={osChecklist}
+          templates={checklistTemplates}
+          onReload={load}
+        />
       )}
 
       {tab === 'warranty' && params.id && (

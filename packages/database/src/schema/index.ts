@@ -6,3 +6,4 @@ export * from './specialized.js';
 export * from './knowledge-ai.js';
 export * from './contracts-warranties.js';
 export * from './sourcing-ops.js';
+export * from './automations-checklists.js';

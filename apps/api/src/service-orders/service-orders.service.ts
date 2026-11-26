@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Inject,
   Injectable,
   NotFoundException,
@@ -21,6 +22,7 @@ import {
   quoteItems,
   quotes,
   serviceOrderAttachments,
+  serviceOrderChecklists,
   serviceOrderEvents,
   serviceOrders,
   sql,
@@ -319,6 +321,31 @@ export class ServiceOrdersService {
       }
 
       const prev = existing[0];
+
+      if (input.status === 'READY' || input.status === 'DELIVERED') {
+        const [checklist] = await tx
+          .select()
+          .from(serviceOrderChecklists)
+          .where(eq(serviceOrderChecklists.serviceOrderId, id))
+          .limit(1);
+
+        if (
+          checklist &&
+          checklist.blockClosingIfIncomplete &&
+          !checklist.completedRequired
+        ) {
+          const pending = checklist.items
+            .filter(
+              (it) =>
+                it.required && checklist.responses[it.key]?.checked !== true,
+            )
+            .map((it) => it.label);
+          throw new BadRequestException(
+            `Checklist obrigatório incompleto para encerrar/liberar a OS: ${pending.join(', ')}`,
+          );
+        }
+      }
+
       const [row] = await tx
         .update(serviceOrders)
         .set({
