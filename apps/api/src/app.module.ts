@@ -58,6 +58,8 @@ import { SocialService } from './social/social.service';
 import { SearchController } from './search/search.controller';
 import { AnalyticsController } from './analytics/analytics.controller';
 import { AnalyticsService } from './analytics/analytics.service';
+import { SecurityController } from './security/security.controller';
+import { SecurityService } from './security/security.service';
 import { HealthController } from './health/health.controller';
 
 @Module({
@@ -109,6 +111,7 @@ import { HealthController } from './health/health.controller';
     LeadsController,
     SearchController,
     AnalyticsController,
+    SecurityController,
   ],
   providers: [
     AuthService,
@@ -129,6 +132,7 @@ import { HealthController } from './health/health.controller';
     ProjectsService,
     SocialService,
     AnalyticsService,
+    SecurityService,
     { provide: APP_GUARD, useClass: JwtAuthGuard },
     { provide: APP_GUARD, useClass: PermissionsGuard },
     { provide: APP_GUARD, useClass: ModuleEntitlementGuard },

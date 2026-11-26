@@ -537,3 +537,37 @@ export const createServiceCatalogItemSchema = z.object({
 export type CreateServiceCatalogItemInput = z.infer<
   typeof createServiceCatalogItemSchema
 >;
+
+export const createTeamMemberSchema = z.object({
+  name: z.string().min(2, 'Nome obrigatório').max(160),
+  email: z.string().email('E-mail inválido'),
+  password: z.string().min(8, 'Senha mínima de 8 caracteres').max(128),
+  role: z
+    .enum(['admin', 'technician', 'attendant', 'viewer'])
+    .default('technician'),
+});
+export type CreateTeamMemberInput = z.infer<typeof createTeamMemberSchema>;
+
+export const createApiKeySchema = z.object({
+  name: z.string().min(2, 'Nome da chave obrigatório').max(140),
+  scopes: z.array(z.string().max(40)).default(['os:read', 'customers:read']),
+});
+export type CreateApiKeyInput = z.infer<typeof createApiKeySchema>;
+
+export const createWebhookEndpointSchema = z.object({
+  name: z.string().min(2, 'Nome obrigatório').max(140),
+  targetUrl: z
+    .string()
+    .url('URL inválida')
+    .refine(
+      (u) => u.startsWith('http://') || u.startsWith('https://'),
+      'A URL deve começar com http:// ou https://',
+    ),
+  events: z
+    .array(z.string().max(60))
+    .min(1)
+    .default(['service_order.created', 'quote.approved']),
+});
+export type CreateWebhookEndpointInput = z.infer<
+  typeof createWebhookEndpointSchema
+>;

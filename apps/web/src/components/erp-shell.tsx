@@ -17,6 +17,7 @@ import {
   PlusCircle,
   Printer,
   Repeat,
+  ShieldAlert,
   ShieldCheck,
   ShoppingCart,
   Users,
@@ -208,6 +209,13 @@ export function ErpShell({
       icon: Boxes,
       group: 'Sistema',
       show: true,
+    },
+    {
+      href: '/app/security',
+      label: 'Segurança, Equipe & API',
+      icon: ShieldAlert,
+      group: 'Sistema',
+      show: session.user.role === 'owner' || session.user.role === 'admin',
     },
   ];
   const navItems = rawNavItems.filter((item) => item.show);
