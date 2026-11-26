@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import { AlertTriangle, PackagePlus, Search, Truck } from 'lucide-react';
 import { ErpShell, type ErpSession } from '@/components/erp-shell';
+import { SourcingComparisonTab } from '@/components/inventory/sourcing-tab';
 import { apiFetch } from '@/lib/api';
 
 interface ProductRow {
@@ -58,6 +59,7 @@ function InventoryContent({ session }: { session: ErpSession }) {
   const [poSupplierId, setPoSupplierId] = useState('');
   const [poProductId, setPoProductId] = useState('');
   const [poQty, setPoQty] = useState('5');
+  const [tab, setTab] = useState<'stock' | 'sourcing'>('stock');
   const [error, setError] = useState<string | null>(null);
 
   const enabled = session.enabledModules.includes('mod-inventory-pos');
@@ -155,11 +157,43 @@ function InventoryContent({ session }: { session: ErpSession }) {
 
   return (
     <div className="space-y-6">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-3">
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => setTab('stock')}
+            className={`rounded-xl px-3.5 py-2 text-xs font-semibold transition-colors ${
+              tab === 'stock'
+                ? 'bg-accent text-accent-foreground'
+                : 'border border-border bg-surface text-text-secondary hover:text-text-primary'
+            }`}
+          >
+            Estoque, Peças & Pedidos
+          </button>
+          <button
+            type="button"
+            onClick={() => setTab('sourcing')}
+            className={`rounded-xl px-3.5 py-2 text-xs font-semibold transition-colors ${
+              tab === 'sourcing'
+                ? 'bg-accent text-accent-foreground'
+                : 'border border-border bg-surface text-text-secondary hover:text-text-primary'
+            }`}
+          >
+            Cotação B2B vs. Marketplace PF
+          </button>
+        </div>
+      </div>
+
       {error && (
-        <div className="rounded-md border border-danger/40 bg-danger/10 p-3 text-sm text-danger">
+        <div className="rounded-xl border border-danger/40 bg-danger/10 p-3 text-sm text-danger">
           {error}
         </div>
       )}
+
+      {tab === 'sourcing' ? (
+        <SourcingComparisonTab />
+      ) : (
+        <>
 
       {/* Cadastro Rápido */}
       <form
@@ -358,6 +392,8 @@ function InventoryContent({ session }: { session: ErpSession }) {
           ))}
         </div>
       </div>
+        </>
+      )}
     </div>
   );
 }

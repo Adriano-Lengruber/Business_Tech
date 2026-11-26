@@ -137,7 +137,7 @@ function InboxContent() {
       {/* Simulador de WhatsApp para testar Debounce + Agente IA + Handoff ao vivo */}
       <form
         onSubmit={handleSimulateInbound}
-        className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-surface p-3 text-xs"
+        className="flex flex-wrap items-center gap-2 rounded-2xl border border-border bg-surface p-3 text-xs"
       >
         <span className="font-mono font-semibold text-accent">
           Simular Cliente WhatsApp:
@@ -171,7 +171,7 @@ function InboxContent() {
         {simStatus && <span className="text-text-secondary">{simStatus}</span>}
       </form>
 
-      <div className="grid min-h-[540px] overflow-hidden rounded-xl border border-border bg-surface lg:grid-cols-3">
+      <div className="grid min-h-[540px] overflow-hidden rounded-2xl border border-border bg-surface lg:grid-cols-3">
         {/* Coluna 1: Conversas */}
         <div className="border-b border-border lg:border-b-0 lg:border-r">
           <div className="flex items-center justify-between border-b border-border px-4 py-3">
@@ -314,11 +314,11 @@ function InboxContent() {
                   value={replyText}
                   onChange={(e) => setReplyText(e.target.value)}
                   placeholder="Responder como atendente humano (pausa o bot automaticamente)..."
-                  className="flex-1 rounded-md border border-border bg-bg px-3 py-2 text-sm outline-none focus:border-accent"
+                  className="flex-1 rounded-xl border border-border bg-bg px-3 py-2 text-sm outline-none focus:border-accent"
                 />
                 <button
                   type="submit"
-                  className="inline-flex items-center gap-1.5 rounded-md bg-accent px-4 py-2 text-sm font-semibold text-accent-foreground hover:bg-accent-hover"
+                  className="inline-flex items-center gap-1.5 rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-accent-foreground hover:bg-accent-hover"
                 >
                   <Send className="h-4 w-4" />
                   Enviar

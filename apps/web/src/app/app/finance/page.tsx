@@ -100,7 +100,7 @@ function FinanceContent({ session }: { session: ErpSession }) {
 
   if (!enabled) {
     return (
-      <div className="rounded-lg border border-border bg-surface p-6 text-sm text-text-secondary">
+      <div className="rounded-2xl border border-border bg-surface p-6 text-sm text-text-secondary">
         O módulo <strong>Financeiro & Fiscal BR</strong> está desativado para esta organização.
       </div>
     );
@@ -116,25 +116,25 @@ function FinanceContent({ session }: { session: ErpSession }) {
 
       {summary && (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <div className="rounded-lg border border-border bg-surface p-4">
+          <div className="rounded-2xl border border-border bg-surface p-4">
             <p className="text-xs text-text-secondary">Receita Confirmada</p>
             <p className="mt-1 font-mono text-xl font-bold text-success tabular-nums">
               {formatBrl(summary.confirmedReceivableCents)}
             </p>
           </div>
-          <div className="rounded-lg border border-border bg-surface p-4">
+          <div className="rounded-2xl border border-border bg-surface p-4">
             <p className="text-xs text-text-secondary">Contas a Receber</p>
             <p className="mt-1 font-mono text-xl font-bold text-accent tabular-nums">
               {formatBrl(summary.pendingReceivableCents)}
             </p>
           </div>
-          <div className="rounded-lg border border-border bg-surface p-4">
+          <div className="rounded-2xl border border-border bg-surface p-4">
             <p className="text-xs text-text-secondary">Despesas / Contas a Pagar</p>
             <p className="mt-1 font-mono text-xl font-bold text-danger tabular-nums">
               {formatBrl(summary.payableCents)}
             </p>
           </div>
-          <div className="rounded-lg border border-border bg-surface p-4">
+          <div className="rounded-2xl border border-border bg-surface p-4">
             <p className="text-xs text-text-secondary">Saldo Líquido Realizado</p>
             <p className="mt-1 font-mono text-xl font-bold tabular-nums">
               {formatBrl(summary.netCashflowCents)}
@@ -145,12 +145,12 @@ function FinanceContent({ session }: { session: ErpSession }) {
 
       <form
         onSubmit={handleCreate}
-        className="grid gap-3 rounded-lg border border-border bg-surface p-4 sm:grid-cols-5"
+        className="grid gap-3 rounded-2xl border border-border bg-surface p-4 sm:grid-cols-5"
       >
         <select
           value={type}
           onChange={(e) => setType(e.target.value as 'receivable' | 'payable')}
-          className="rounded-md border border-border bg-bg px-3 py-2 text-sm"
+          className="rounded-xl border border-border bg-bg px-3 py-2 text-sm"
         >
           <option value="receivable">A Receber (PIX)</option>
           <option value="payable">A Pagar (Despesa)</option>
@@ -160,14 +160,14 @@ function FinanceContent({ session }: { session: ErpSession }) {
           onChange={(e) => setCategory(e.target.value)}
           placeholder="Categoria"
           required
-          className="rounded-md border border-border bg-bg px-3 py-2 text-sm"
+          className="rounded-xl border border-border bg-bg px-3 py-2 text-sm"
         />
         <input
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           placeholder="Descrição do lançamento"
           required
-          className="rounded-md border border-border bg-bg px-3 py-2 text-sm sm:col-span-2"
+          className="rounded-xl border border-border bg-bg px-3 py-2 text-sm sm:col-span-2"
         />
         <div className="flex gap-2">
           <input
@@ -175,18 +175,18 @@ function FinanceContent({ session }: { session: ErpSession }) {
             onChange={(e) => setAmountBrl(e.target.value)}
             placeholder="Valor (ex: 150,00)"
             required
-            className="w-full rounded-md border border-border bg-bg px-3 py-2 text-sm font-mono"
+            className="w-full rounded-xl border border-border bg-bg px-3 py-2 text-sm font-mono"
           />
           <button
             type="submit"
-            className="shrink-0 rounded-md bg-accent px-4 py-2 text-sm font-semibold text-accent-foreground hover:bg-accent-hover"
+            className="shrink-0 rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-accent-foreground hover:bg-accent-hover"
           >
             Lançar
           </button>
         </div>
       </form>
 
-      <div className="overflow-x-auto rounded-lg border border-border bg-surface">
+      <div className="overflow-x-auto rounded-2xl border border-border bg-surface">
         <table className="w-full text-left text-sm">
           <thead className="border-b border-border bg-surface-muted/60 text-xs text-text-secondary">
             <tr>

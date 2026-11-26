@@ -102,7 +102,7 @@ function SocialContent({ session }: { session: ErpSession }) {
 
   if (!enabled) {
     return (
-      <div className="rounded-lg border border-border bg-surface p-6 text-sm text-text-secondary">
+      <div className="rounded-2xl border border-border bg-surface p-6 text-sm text-text-secondary">
         O módulo <strong>Social Media & Growth IA</strong> está desativado.
       </div>
     );
@@ -112,12 +112,12 @@ function SocialContent({ session }: { session: ErpSession }) {
     <div className="space-y-6">
       <form
         onSubmit={handleAiGenerate}
-        className="flex flex-wrap gap-2 rounded-lg border border-border bg-surface p-4"
+        className="flex flex-wrap gap-2 rounded-2xl border border-border bg-surface p-4"
       >
         <select
           value={platform}
           onChange={(e) => setPlatform(e.target.value as SocialPlatform)}
-          className="rounded-md border border-border bg-bg px-3 py-2 text-sm"
+          className="rounded-xl border border-border bg-bg px-3 py-2 text-sm"
         >
           <option value="instagram">Instagram</option>
           <option value="linkedin">LinkedIn</option>
@@ -128,12 +128,12 @@ function SocialContent({ session }: { session: ErpSession }) {
           value={topicHint}
           onChange={(e) => setTopicHint(e.target.value)}
           placeholder="Tema ou caso real da semana (ex: upgrade SSD + impressão 3D)..."
-          className="min-w-[240px] flex-1 rounded-md border border-border bg-bg px-3 py-2 text-sm"
+          className="min-w-[240px] flex-1 rounded-xl border border-border bg-bg px-3 py-2 text-sm"
         />
         <button
           type="submit"
           disabled={generating}
-          className="inline-flex items-center gap-1.5 rounded-md bg-accent px-4 py-2 text-sm font-semibold text-accent-foreground hover:bg-accent-hover"
+          className="inline-flex items-center gap-1.5 rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-accent-foreground hover:bg-accent-hover"
         >
           <Sparkles className="h-4 w-4" />
           {generating ? 'Gerando...' : 'Gerar Rascunho com IA'}
@@ -150,7 +150,7 @@ function SocialContent({ session }: { session: ErpSession }) {
           {posts.map((p) => (
             <div
               key={p.id}
-              className="rounded-lg border border-border bg-surface p-4 space-y-2.5 text-sm"
+              className="rounded-2xl border border-border bg-surface p-4 space-y-2.5 text-sm"
             >
               <div className="flex items-center justify-between gap-2">
                 <span className="font-mono text-xs font-semibold uppercase text-accent">
@@ -238,7 +238,7 @@ function SocialContent({ session }: { session: ErpSession }) {
             {leads.map((l) => (
               <div
                 key={l.id}
-                className="rounded-lg border border-border bg-surface p-3.5 text-xs space-y-1"
+                className="rounded-2xl border border-border bg-surface p-3.5 text-xs space-y-1"
               >
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-semibold">{l.name}</span>

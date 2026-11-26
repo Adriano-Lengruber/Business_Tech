@@ -65,9 +65,19 @@ export const createAssetSchema = z.object({
   brand: z.string().max(80).optional(),
   model: z.string().max(120).optional(),
   serialNumber: z.string().max(120).optional(),
+  acquiredFromStore: z.boolean().default(false),
+  storeSaleRef: z.string().max(80).optional(),
+  vipDiscountPct: z.coerce.number().int().min(0).max(80).default(0),
   specs: z.record(z.unknown()).default({}),
 });
 export type CreateAssetInput = z.infer<typeof createAssetSchema>;
+
+export const updateAssetVipSchema = z.object({
+  acquiredFromStore: z.boolean(),
+  storeSaleRef: z.string().max(80).optional().nullable(),
+  vipDiscountPct: z.coerce.number().int().min(0).max(80).default(20),
+});
+export type UpdateAssetVipInput = z.infer<typeof updateAssetVipSchema>;
 
 export const createServiceOrderSchema = z.object({
   customerId: z.string().uuid('Cliente obrigatório'),
@@ -424,3 +434,42 @@ export const logContractUsageSchema = z.object({
   notes: z.string().max(500).optional(),
 });
 export type LogContractUsageInput = z.infer<typeof logContractUsageSchema>;
+
+export const saveOsSignatureSchema = z.object({
+  signatureDataUrl: z
+    .string()
+    .startsWith('data:image/', 'Assinatura deve ser uma imagem base64')
+    .max(500000),
+});
+export type SaveOsSignatureInput = z.infer<typeof saveOsSignatureSchema>;
+
+export const startOsTimerSchema = z.object({
+  mode: z.enum(['active_bench', 'wait_approval', 'wait_part']).default('active_bench'),
+  note: z.string().max(300).optional(),
+});
+export type StartOsTimerInput = z.infer<typeof startOsTimerSchema>;
+
+export const createSourcingRequestSchema = z.object({
+  itemName: z.string().min(2, 'Informe o produto/peça').max(200),
+  category: z.string().max(60).default('hardware'),
+  desiredQty: z.coerce.number().int().min(1).max(1000).default(1),
+  targetResalePriceCents: z.coerce.number().int().min(0).optional().nullable(),
+  urgency: z.enum(['low', 'normal', 'urgent']).default('normal'),
+});
+export type CreateSourcingRequestInput = z.infer<
+  typeof createSourcingRequestSchema
+>;
+
+export const addSourcingOfferSchema = z.object({
+  channelType: z.enum(['supplier_b2b', 'marketplace_pf']).default('supplier_b2b'),
+  vendorName: z.string().min(2, 'Informe o fornecedor/marketplace').max(160),
+  supplierId: z.string().uuid().optional().nullable(),
+  unitPriceCents: z.coerce.number().int().min(1),
+  shippingCents: z.coerce.number().int().min(0).default(0),
+  taxOrFeeCents: z.coerce.number().int().min(0).default(0),
+  deliveryDays: z.coerce.number().int().min(0).max(120).default(2),
+  paymentTerms: z.string().max(120).optional(),
+  sourceUrl: z.string().max(1000).optional(),
+  notes: z.string().max(1000).optional(),
+});
+export type AddSourcingOfferInput = z.infer<typeof addSourcingOfferSchema>;

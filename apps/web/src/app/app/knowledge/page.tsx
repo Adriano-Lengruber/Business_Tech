@@ -84,7 +84,7 @@ function KnowledgeContent({ session }: { session: ErpSession }) {
 
   if (!enabled) {
     return (
-      <div className="rounded-lg border border-border bg-surface p-6 text-sm text-text-secondary">
+      <div className="rounded-2xl border border-border bg-surface p-6 text-sm text-text-secondary">
         O módulo <strong>Agentes de IA & WhatsApp</strong> está desativado.
       </div>
     );
@@ -95,7 +95,7 @@ function KnowledgeContent({ session }: { session: ErpSession }) {
       <div className="grid gap-6 lg:grid-cols-2">
         <form
           onSubmit={handleIngest}
-          className="rounded-lg border border-border bg-surface p-5 space-y-3"
+          className="rounded-2xl border border-border bg-surface p-5 space-y-3"
         >
           <div className="flex items-center gap-2 text-sm font-semibold">
             <BookOpen className="h-4 w-4 text-accent" />
@@ -107,12 +107,12 @@ function KnowledgeContent({ session }: { session: ErpSession }) {
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Título do documento *"
-              className="rounded-md border border-border bg-bg px-3 py-2 text-sm sm:col-span-2"
+              className="rounded-xl border border-border bg-bg px-3 py-2 text-sm sm:col-span-2"
             />
             <select
               value={sourceType}
               onChange={(e) => setSourceType(e.target.value)}
-              className="rounded-md border border-border bg-bg px-3 py-2 text-sm"
+              className="rounded-xl border border-border bg-bg px-3 py-2 text-sm"
             >
               <option value="policy">Política</option>
               <option value="manual">Manual Técnico</option>
@@ -126,17 +126,17 @@ function KnowledgeContent({ session }: { session: ErpSession }) {
             value={content}
             onChange={(e) => setContent(e.target.value)}
             placeholder="Cole aqui o texto do manual, garantia ou procedimento técnico (mín. 20 caracteres)..."
-            className="w-full rounded-md border border-border bg-bg px-3 py-2 text-sm"
+            className="w-full rounded-xl border border-border bg-bg px-3 py-2 text-sm"
           />
           <button
             type="submit"
-            className="rounded-md bg-accent px-4 py-2 text-sm font-semibold text-accent-foreground hover:bg-accent-hover"
+            className="rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-accent-foreground hover:bg-accent-hover"
           >
             Gerar Chunks + Embeddings (pgvector)
           </button>
         </form>
 
-        <div className="rounded-lg border border-border bg-surface p-5 space-y-3">
+        <div className="rounded-2xl border border-border bg-surface p-5 space-y-3">
           <div className="flex items-center gap-2 text-sm font-semibold">
             <Search className="h-4 w-4 text-accent" />
             Testar Busca Híbrida (RRF Lexical + Vetorial)
@@ -146,11 +146,11 @@ function KnowledgeContent({ session }: { session: ErpSession }) {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Ex: qual o prazo de garantia ou procedimento térmico?"
-              className="flex-1 rounded-md border border-border bg-bg px-3 py-2 text-sm"
+              className="flex-1 rounded-xl border border-border bg-bg px-3 py-2 text-sm"
             />
             <button
               type="submit"
-              className="rounded-md bg-accent px-4 py-2 text-xs font-semibold text-accent-foreground"
+              className="rounded-xl bg-accent px-4 py-2 text-xs font-semibold text-accent-foreground"
             >
               Buscar
             </button>
@@ -173,7 +173,7 @@ function KnowledgeContent({ session }: { session: ErpSession }) {
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <div className="rounded-lg border border-border bg-surface p-5 space-y-3">
+        <div className="rounded-2xl border border-border bg-surface p-5 space-y-3">
           <h2 className="text-sm font-semibold">Documentos Indexados ({docs.length})</h2>
           <div className="space-y-2">
             {docs.map((d) => (
@@ -192,7 +192,7 @@ function KnowledgeContent({ session }: { session: ErpSession }) {
           </div>
         </div>
 
-        <div className="rounded-lg border border-border bg-surface p-5 space-y-3">
+        <div className="rounded-2xl border border-border bg-surface p-5 space-y-3">
           <h2 className="flex items-center gap-2 text-sm font-semibold">
             <Sparkles className="h-4 w-4 text-accent" />
             Telemetria dos Agentes IA ({telemetry.length})

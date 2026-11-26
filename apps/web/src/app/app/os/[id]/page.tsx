@@ -18,6 +18,11 @@ import {
   type HardwareDiffResponse,
 } from '@/components/os/hardware-tab';
 import { WarrantyRmaTab, type WarrantyRow } from '@/components/os/warranty-tab';
+import { SignaturePadCard } from '@/components/os/signature-pad';
+import {
+  BenchTimerWidget,
+  type OsTimersState,
+} from '@/components/os/bench-timer-widget';
 import { apiFetch } from '@/lib/api';
 
 interface OsDetail {
@@ -30,6 +35,8 @@ interface OsDetail {
     preliminaryDiagnosis: string | null;
     hasDevicePassword?: boolean;
     devicePasswordHint?: string | null;
+    signatureDataUrl?: string | null;
+    signatureSignedAt?: string | null;
     createdAt: string;
   };
   customer: { name: string; phoneE164: string };
@@ -39,6 +46,9 @@ interface OsDetail {
     model: string | null;
     serialNumber: string | null;
     qrToken: string;
+    acquiredFromStore?: boolean;
+    vipDiscountPct?: number;
+    storeSaleRef?: string | null;
   } | null;
   events: Array<{
     id: string;
@@ -99,6 +109,7 @@ function OsDetailContent() {
   const [quotes, setQuotes] = useState<QuoteRow[]>([]);
   const [hwData, setHwData] = useState<HardwareDiffResponse | null>(null);
   const [warranties, setWarranties] = useState<WarrantyRow[]>([]);
+  const [timers, setTimers] = useState<OsTimersState | null>(null);
 
   const [nextStatus, setNextStatus] = useState<OsStatus>('DIAGNOSIS');
   const [note, setNote] = useState('');
@@ -140,7 +151,7 @@ function OsDetailContent() {
   const load = useCallback(async () => {
     const token = window.localStorage.getItem('al_token');
     if (!token || !params.id) return;
-    const [data, diags, qList, hw, warList] = await Promise.all([
+    const [data, diags, qList, hw, warList, timerState] = await Promise.all([
       apiFetch<OsDetail>(`/service-orders/${params.id}`, { token }),
       apiFetch<DiagnosticRow[]>(`/service-orders/${params.id}/diagnostics`, { token }),
       apiFetch<QuoteRow[]>(`/service-orders/${params.id}/quotes`, { token }),
@@ -151,6 +162,7 @@ function OsDetailContent() {
       apiFetch<WarrantyRow[]>(`/service-orders/${params.id}/warranties`, {
         token,
       }),
+      apiFetch<OsTimersState>(`/service-orders/${params.id}/timers`, { token }),
     ]);
     setDetail(data);
     setNextStatus(data.os.status);
@@ -158,6 +170,7 @@ function OsDetailContent() {
     setQuotes(qList);
     setHwData(hw);
     setWarranties(warList);
+    setTimers(timerState);
   }, [params.id]);
 
   useEffect(() => {
@@ -321,12 +334,22 @@ function OsDetailContent() {
             </span>
           </h2>
           {detail.asset && (
-            <p className="text-xs text-text-secondary">
-              {[detail.asset.category, detail.asset.brand, detail.asset.model]
-                .filter(Boolean)
-                .join(' · ')}{' '}
-              | QR: <span className="font-mono">{detail.asset.qrToken}</span>
-            </p>
+            <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-text-secondary">
+              <span>
+                {[detail.asset.category, detail.asset.brand, detail.asset.model]
+                  .filter(Boolean)
+                  .join(' · ')}{' '}
+                | QR: <span className="font-mono">{detail.asset.qrToken}</span>
+              </span>
+              {detail.asset.acquiredFromStore && (
+                <span className="inline-flex items-center gap-1 rounded-full border border-accent/40 bg-accent/15 px-2.5 py-0.5 font-mono text-[10px] font-semibold text-accent">
+                  PACIENTE VIP LOJA · -{detail.asset.vipDiscountPct ?? 20}% MANUTENÇÃO
+                  {detail.asset.storeSaleRef
+                    ? ` (${detail.asset.storeSaleRef})`
+                    : ''}
+                </span>
+              )}
+            </div>
           )}
         </div>
 
@@ -489,44 +512,63 @@ function OsDetailContent() {
             </div>
           </div>
 
-          <form
-            onSubmit={handleUpdateStatus}
-            className="h-fit rounded-lg border border-border bg-surface p-5 space-y-4"
-          >
-            <h3 className="text-sm font-semibold">Atualizar Status</h3>
-            <select
-              value={nextStatus}
-              onChange={(e) => setNextStatus(e.target.value as OsStatus)}
-              className="w-full rounded-md border border-border bg-bg px-3 py-2 text-sm"
+          <div className="space-y-4">
+            <form
+              onSubmit={handleUpdateStatus}
+              className="rounded-2xl border border-border bg-surface p-5 space-y-4"
             >
-              {OS_STATUSES.map((st) => (
-                <option key={st} value={st}>
-                  {OS_STATUS_LABELS[st]}
-                </option>
-              ))}
-            </select>
-            <textarea
-              rows={3}
-              placeholder="Nota técnica / observação..."
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
-              className="w-full rounded-md border border-border bg-bg px-3 py-2 text-sm"
-            />
-            <label className="flex items-center gap-2 text-xs">
-              <input
-                type="checkbox"
-                checked={notify}
-                onChange={(e) => setNotify(e.target.checked)}
+              <h3 className="text-sm font-semibold">Atualizar Status</h3>
+              <select
+                value={nextStatus}
+                onChange={(e) => setNextStatus(e.target.value as OsStatus)}
+                className="w-full rounded-xl border border-border bg-bg px-3 py-2 text-sm"
+              >
+                {OS_STATUSES.map((st) => (
+                  <option key={st} value={st}>
+                    {OS_STATUS_LABELS[st]}
+                  </option>
+                ))}
+              </select>
+              <textarea
+                rows={3}
+                placeholder="Nota técnica / observação..."
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+                className="w-full rounded-xl border border-border bg-bg px-3 py-2 text-sm"
               />
-              Notificar cliente via WhatsApp
-            </label>
-            <button
-              type="submit"
-              className="w-full rounded-md bg-accent px-4 py-2 text-sm font-semibold text-accent-foreground hover:bg-accent-hover"
-            >
-              Salvar status
-            </button>
-          </form>
+              <label className="flex items-center gap-2 text-xs">
+                <input
+                  type="checkbox"
+                  checked={notify}
+                  onChange={(e) => setNotify(e.target.checked)}
+                />
+                Notificar cliente via WhatsApp
+              </label>
+              <button
+                type="submit"
+                className="w-full rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-accent-foreground hover:bg-accent-hover"
+              >
+                Salvar status
+              </button>
+            </form>
+
+            {params.id && (
+              <BenchTimerWidget
+                osId={params.id}
+                timers={timers}
+                onUpdated={load}
+              />
+            )}
+
+            {params.id && (
+              <SignaturePadCard
+                osId={params.id}
+                existingSignature={detail.os.signatureDataUrl}
+                signedAt={detail.os.signatureSignedAt}
+                onSaved={load}
+              />
+            )}
+          </div>
         </div>
       )}
 
