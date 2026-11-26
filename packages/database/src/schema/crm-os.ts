@@ -3,6 +3,7 @@ import {
   uuid,
   varchar,
   text,
+  integer,
   jsonb,
   timestamp,
   uniqueIndex,
@@ -146,6 +147,55 @@ export const messages = pgTable(
     uniqueIndex('messages_org_provider_id_idx').on(
       t.organizationId,
       t.providerMessageId,
+    ),
+  ],
+);
+
+export const serviceOrderAttachments = pgTable(
+  'service_order_attachments',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    organizationId: uuid('organization_id')
+      .notNull()
+      .references(() => organizations.id, { onDelete: 'cascade' }),
+    serviceOrderId: uuid('service_order_id')
+      .notNull()
+      .references(() => serviceOrders.id, { onDelete: 'cascade' }),
+    kind: varchar('kind', { length: 30 }).notNull().default('intake_photo'),
+    filename: varchar('filename', { length: 255 }).notNull(),
+    mimeType: varchar('mime_type', { length: 120 }).notNull(),
+    storageKey: text('storage_key').notNull(),
+    sizeBytes: integer('size_bytes').notNull().default(0),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    index('os_attachments_org_os_idx').on(t.organizationId, t.serviceOrderId),
+  ],
+);
+
+export const serviceOrderEvents = pgTable(
+  'service_order_events',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    organizationId: uuid('organization_id')
+      .notNull()
+      .references(() => organizations.id, { onDelete: 'cascade' }),
+    serviceOrderId: uuid('service_order_id')
+      .notNull()
+      .references(() => serviceOrders.id, { onDelete: 'cascade' }),
+    eventType: varchar('event_type', { length: 60 }).notNull(),
+    fromStatus: varchar('from_status', { length: 40 }),
+    toStatus: varchar('to_status', { length: 40 }),
+    note: text('note'),
+    actorType: varchar('actor_type', { length: 30 }).notNull().default('human'),
+    actorId: varchar('actor_id', { length: 120 }).notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    index('os_events_org_os_created_idx').on(
+      t.organizationId,
+      t.serviceOrderId,
+      t.createdAt,
     ),
   ],
 );
