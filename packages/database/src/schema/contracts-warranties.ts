@@ -118,3 +118,24 @@ export const maintenanceContracts = pgTable(
     index('maintenance_contracts_org_status_idx').on(t.organizationId, t.status),
   ],
 );
+
+export const serviceCatalogItems = pgTable(
+  'service_catalog_items',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    organizationId: uuid('organization_id')
+      .notNull()
+      .references(() => organizations.id, { onDelete: 'cascade' }),
+    code: varchar('code', { length: 40 }).notNull(),
+    name: varchar('name', { length: 180 }).notNull(),
+    category: varchar('category', { length: 60 }).notNull().default('manutencao'),
+    defaultLaborCents: integer('default_labor_cents').notNull().default(0),
+    estimatedCostCents: integer('estimated_cost_cents').notNull().default(0),
+    defaultWarrantyDays: integer('default_warranty_days').notNull().default(90),
+    estimatedHours: integer('estimated_hours').notNull().default(2),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    uniqueIndex('service_catalog_org_code_idx').on(t.organizationId, t.code),
+  ],
+);

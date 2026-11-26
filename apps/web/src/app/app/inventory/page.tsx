@@ -59,6 +59,8 @@ function InventoryContent({ session }: { session: ErpSession }) {
   const [poSupplierId, setPoSupplierId] = useState('');
   const [poProductId, setPoProductId] = useState('');
   const [poQty, setPoQty] = useState('5');
+  const [poLinkedOsId, setPoLinkedOsId] = useState('');
+  const [openOrders, setOpenOrders] = useState<Array<{ id: string; code: string; customerName: string }>>([]);
   const [tab, setTab] = useState<'stock' | 'sourcing'>('stock');
   const [error, setError] = useState<string | null>(null);
 
@@ -67,17 +69,22 @@ function InventoryContent({ session }: { session: ErpSession }) {
   const load = useCallback(async () => {
     const token = window.localStorage.getItem('al_token');
     if (!token || !enabled) return;
-    const [prods, sups, pos] = await Promise.all([
+    const [prods, sups, pos, osList] = await Promise.all([
       apiFetch<ProductRow[]>(
         `/inventory/products?q=${encodeURIComponent(query)}`,
         { token },
       ),
       apiFetch<SupplierRow[]>('/inventory/suppliers', { token }),
       apiFetch<PurchaseOrderRow[]>('/inventory/purchase-orders', { token }),
+      apiFetch<Array<{ id: string; code: string; customerName: string }>>(
+        '/service-orders',
+        { token },
+      ).catch(() => []),
     ]);
     setProducts(prods);
     setSuppliers(sups);
     setOrders(pos);
+    setOpenOrders(osList);
     if (!poSupplierId && sups[0]) setPoSupplierId(sups[0].id);
     if (!poProductId && prods[0]) setPoProductId(prods[0].id);
   }, [enabled, query, poSupplierId, poProductId]);
@@ -125,6 +132,7 @@ function InventoryContent({ session }: { session: ErpSession }) {
       token,
       body: JSON.stringify({
         supplierId: poSupplierId,
+        linkedServiceOrderId: poLinkedOsId || undefined,
         items: [
           {
             productId: selectedProd.id,
@@ -328,11 +336,11 @@ function InventoryContent({ session }: { session: ErpSession }) {
           Pedidos de Compra ({suppliers.length} fornecedor(es))
         </div>
 
-        <form onSubmit={handleCreatePo} className="grid gap-2 sm:grid-cols-4">
+        <form onSubmit={handleCreatePo} className="grid gap-2 sm:grid-cols-5">
           <select
             value={poSupplierId}
             onChange={(e) => setPoSupplierId(e.target.value)}
-            className="rounded-md border border-border bg-bg px-3 py-2 text-sm"
+            className="rounded-xl border border-border bg-bg px-3 py-2 text-sm"
           >
             {suppliers.map((s) => (
               <option key={s.id} value={s.id}>
@@ -343,11 +351,23 @@ function InventoryContent({ session }: { session: ErpSession }) {
           <select
             value={poProductId}
             onChange={(e) => setPoProductId(e.target.value)}
-            className="rounded-md border border-border bg-bg px-3 py-2 text-sm"
+            className="rounded-xl border border-border bg-bg px-3 py-2 text-sm"
           >
             {products.map((p) => (
               <option key={p.id} value={p.id}>
                 {p.sku} — {p.name}
+              </option>
+            ))}
+          </select>
+          <select
+            value={poLinkedOsId}
+            onChange={(e) => setPoLinkedOsId(e.target.value)}
+            className="rounded-xl border border-border bg-bg px-3 py-2 text-xs"
+          >
+            <option value="">Sem OS vinculada (estoque geral)</option>
+            {openOrders.map((os) => (
+              <option key={os.id} value={os.id}>
+                Vincular {os.code} ({os.customerName})
               </option>
             ))}
           </select>
@@ -356,11 +376,11 @@ function InventoryContent({ session }: { session: ErpSession }) {
             min={1}
             value={poQty}
             onChange={(e) => setPoQty(e.target.value)}
-            className="rounded-md border border-border bg-bg px-3 py-2 text-sm font-mono"
+            className="rounded-xl border border-border bg-bg px-3 py-2 text-sm font-mono"
           />
           <button
             type="submit"
-            className="rounded-md bg-accent px-4 py-2 text-sm font-semibold text-accent-foreground hover:bg-accent-hover"
+            className="rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-accent-foreground hover:bg-accent-hover"
           >
             Gerar Pedido Compra
           </button>

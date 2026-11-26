@@ -19,6 +19,7 @@ import {
   Repeat,
   ShieldCheck,
   ShoppingCart,
+  Users,
   Wrench,
   Zap,
 } from 'lucide-react';
@@ -116,6 +117,13 @@ export function ErpShell({
       icon: PlusCircle,
       group: 'Operação',
       show: session.enabledModules.includes('mod-service-orders'),
+    },
+    {
+      href: '/app/customers',
+      label: 'Clientes 360° & Catálogo',
+      icon: Users,
+      group: 'Operação',
+      show: true,
     },
     {
       href: '/app/inbox',

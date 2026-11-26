@@ -4,6 +4,8 @@ import {
   Controller,
   Get,
   Inject,
+  NotFoundException,
+  Param,
   Post,
   Query,
 } from '@nestjs/common';
@@ -11,12 +13,17 @@ import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { createHash } from 'node:crypto';
 import {
   and,
+  assets,
   auditLogs,
   customers,
   desc,
+  eq,
   ilike,
   isNull,
+  maintenanceContracts,
   or,
+  serviceOrders,
+  warrantyCases,
 } from '@al/database';
 import { createCustomerSchema } from '@al/shared';
 import {
@@ -148,6 +155,83 @@ export class CustomersController {
       });
 
       return created;
+    });
+  }
+
+  @Get(':id/timeline')
+  @RequirePermission('customers:read')
+  @ApiOperation({
+    summary: 'Visão CRM 360° consolidada: ativos, OSs, garantias e contratos do cliente',
+  })
+  async timeline(@Param('id') id: string, @CurrentUser() user: AuthenticatedUser) {
+    return this.database.withTenant(user.organizationId, async (tx) => {
+      const [cust] = await tx
+        .select({
+          id: customers.id,
+          type: customers.type,
+          name: customers.name,
+          phoneE164: customers.phoneE164,
+          email: customers.email,
+          tags: customers.tags,
+          createdAt: customers.createdAt,
+        })
+        .from(customers)
+        .where(eq(customers.id, id))
+        .limit(1);
+
+      if (!cust) {
+        throw new NotFoundException('Cliente não encontrado.');
+      }
+
+      const [custAssets, custOrders, custWarranties, custContracts] =
+        await Promise.all([
+          tx
+            .select()
+            .from(assets)
+            .where(eq(assets.customerId, id))
+            .orderBy(desc(assets.createdAt)),
+          tx
+            .select({
+              id: serviceOrders.id,
+              code: serviceOrders.code,
+              status: serviceOrders.status,
+              priority: serviceOrders.priority,
+              reportedSymptoms: serviceOrders.reportedSymptoms,
+              createdAt: serviceOrders.createdAt,
+            })
+            .from(serviceOrders)
+            .where(eq(serviceOrders.customerId, id))
+            .orderBy(desc(serviceOrders.createdAt)),
+          tx
+            .select()
+            .from(warrantyCases)
+            .where(eq(warrantyCases.customerId, id))
+            .orderBy(desc(warrantyCases.createdAt)),
+          tx
+            .select()
+            .from(maintenanceContracts)
+            .where(eq(maintenanceContracts.customerId, id))
+            .orderBy(desc(maintenanceContracts.createdAt)),
+        ]);
+
+      return {
+        customer: cust,
+        assets: custAssets,
+        serviceOrders: custOrders,
+        warranties: custWarranties,
+        contracts: custContracts,
+        stats: {
+          assetsCount: custAssets.length,
+          vipAssetsCount: custAssets.filter((a) => a.acquiredFromStore).length,
+          ordersCount: custOrders.length,
+          activeWarrantiesCount: custWarranties.filter(
+            (w) => w.status === 'ACTIVE',
+          ).length,
+          activeContractsCount: custContracts.filter(
+            (c) => c.status === 'ACTIVE',
+          ).length,
+        },
+      };
     });
   }
 }

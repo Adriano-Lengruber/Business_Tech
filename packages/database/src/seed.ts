@@ -38,6 +38,7 @@ import {
   sourcingOffers,
   checklistTemplates,
   automationRules,
+  serviceCatalogItems,
 } from './schema/index.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -1096,6 +1097,68 @@ async function seed() {
           templateText:
             'Item abaixo do estoque mínimo — abrir cotação comparativa B2B vs Marketplace PF.',
           isActive: true,
+        },
+      ]);
+    }
+
+    // Seed Fase 10: Catálogo de Serviços Padronizados
+    const existingCatalog = await db
+      .select({ id: serviceCatalogItems.id })
+      .from(serviceCatalogItems)
+      .where(eq(serviceCatalogItems.organizationId, orgId))
+      .limit(1);
+
+    if (existingCatalog.length === 0) {
+      await db.insert(serviceCatalogItems).values([
+        {
+          organizationId: orgId,
+          code: 'SRV-001',
+          name: 'Limpeza Térmica Completa + Pasta Prata (Notebook/PC)',
+          category: 'manutencao',
+          defaultLaborCents: 18000,
+          estimatedCostCents: 2500,
+          defaultWarrantyDays: 90,
+          estimatedHours: 2,
+        },
+        {
+          organizationId: orgId,
+          code: 'SRV-002',
+          name: 'Formatação + Otimização + Backup + Pacote Drivers',
+          category: 'software',
+          defaultLaborCents: 15000,
+          estimatedCostCents: 0,
+          defaultWarrantyDays: 30,
+          estimatedHours: 2,
+        },
+        {
+          organizationId: orgId,
+          code: 'SRV-003',
+          name: 'Upgrade SSD NVMe + Clonagem de Sistema',
+          category: 'upgrade',
+          defaultLaborCents: 12000,
+          estimatedCostCents: 0,
+          defaultWarrantyDays: 90,
+          estimatedHours: 2,
+        },
+        {
+          organizationId: orgId,
+          code: 'SRV-004',
+          name: 'Substituição de Tela LED/IPS Notebook + Calibração',
+          category: 'notebook',
+          defaultLaborCents: 16000,
+          estimatedCostCents: 0,
+          defaultWarrantyDays: 90,
+          estimatedHours: 2,
+        },
+        {
+          organizationId: orgId,
+          code: 'SRV-005',
+          name: 'Revisão Preventiva VIP (Clientes Equipamento da Loja)',
+          category: 'vip',
+          defaultLaborCents: 10000,
+          estimatedCostCents: 1500,
+          defaultWarrantyDays: 120,
+          estimatedHours: 1,
         },
       ]);
     }
