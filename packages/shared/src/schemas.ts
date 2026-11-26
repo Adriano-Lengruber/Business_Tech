@@ -12,6 +12,13 @@ import {
   INVENTORY_MOVEMENT_TYPES,
   TAX_REGIMES,
 } from './inventory-pos.js';
+import {
+  FILAMENT_TYPES,
+  PRINT_3D_STATUSES,
+  PROJECT_TASK_STATUSES,
+  PROJECT_TYPES,
+  SOCIAL_PLATFORMS,
+} from './specialized.js';
 
 export const loginSchema = z.object({
   email: z.string().email('Informe um e-mail válido'),
@@ -260,3 +267,82 @@ export const emitFiscalDocSchema = z.object({
   simulateRejection: z.boolean().default(false),
 });
 export type EmitFiscalDocInput = z.infer<typeof emitFiscalDocSchema>;
+
+export const createFilamentSchema = z.object({
+  name: z.string().min(2).max(120),
+  materialType: z.enum(FILAMENT_TYPES).default('PLA'),
+  color: z.string().min(2).max(60),
+  brand: z.string().max(80).optional(),
+  costPerKgCents: z.coerce.number().int().positive(),
+  stockGrams: z.coerce.number().int().min(0).default(1000),
+  minGrams: z.coerce.number().int().min(0).default(250),
+});
+export type CreateFilamentInput = z.infer<typeof createFilamentSchema>;
+
+export const createPrint3dJobSchema = z.object({
+  customerId: z.string().uuid().optional().nullable(),
+  filamentId: z.string().uuid(),
+  modelName: z.string().min(2).max(180),
+  weightGrams: z.coerce.number().int().positive(),
+  printTimeMinutes: z.coerce.number().int().positive(),
+  profitMarginPercent: z.coerce.number().min(0).max(500).default(120),
+  notes: z.string().max(1000).optional(),
+});
+export type CreatePrint3dJobInput = z.infer<typeof createPrint3dJobSchema>;
+
+export const updatePrint3dStatusSchema = z.object({
+  status: z.enum(PRINT_3D_STATUSES),
+});
+export type UpdatePrint3dStatusInput = z.infer<typeof updatePrint3dStatusSchema>;
+
+export const createProjectSchema = z.object({
+  customerId: z.string().uuid().optional().nullable(),
+  title: z.string().min(2).max(180),
+  projectType: z.enum(PROJECT_TYPES).default('software_dev'),
+  budgetCents: z.coerce.number().int().min(0).default(0),
+  retainerHoursMonthly: z.coerce.number().min(0).max(1000).default(0),
+  hourlyRateCents: z.coerce.number().int().min(0).default(15000),
+});
+export type CreateProjectInput = z.infer<typeof createProjectSchema>;
+
+export const createProjectTaskSchema = z.object({
+  title: z.string().min(2).max(180),
+  priority: z.enum(['LOW', 'NORMAL', 'HIGH']).default('NORMAL'),
+  estimatedMinutes: z.coerce.number().int().min(0).default(60),
+});
+export type CreateProjectTaskInput = z.infer<typeof createProjectTaskSchema>;
+
+export const updateProjectTaskStatusSchema = z.object({
+  status: z.enum(PROJECT_TASK_STATUSES),
+});
+export type UpdateProjectTaskStatusInput = z.infer<
+  typeof updateProjectTaskStatusSchema
+>;
+
+export const logTimeEntrySchema = z.object({
+  taskId: z.string().uuid().optional().nullable(),
+  minutes: z.coerce.number().int().positive().max(1440),
+  description: z.string().min(2).max(300),
+  billable: z.boolean().default(true),
+});
+export type LogTimeEntryInput = z.infer<typeof logTimeEntrySchema>;
+
+export const createSocialPostSchema = z.object({
+  platform: z.enum(SOCIAL_PLATFORMS).default('instagram'),
+  title: z.string().min(2).max(160),
+  caption: z.string().min(4).max(2200),
+  hashtags: z.string().max(400).optional(),
+  scheduledFor: z.string().datetime().optional().nullable(),
+});
+export type CreateSocialPostInput = z.infer<typeof createSocialPostSchema>;
+
+export const createLeadSchema = z.object({
+  source: z
+    .enum(['landing_page', 'whatsapp', 'social_comment', 'walk_in'])
+    .default('landing_page'),
+  sourceRefId: z.string().max(120).optional().nullable(),
+  name: z.string().min(2).max(160),
+  phoneE164: z.string().max(24).optional(),
+  notes: z.string().max(1000).optional(),
+});
+export type CreateLeadInput = z.infer<typeof createLeadSchema>;

@@ -36,6 +36,12 @@ import { PosService } from './pos/pos.service';
 import { FiscalController } from './fiscal/fiscal.controller';
 import { FiscalService } from './fiscal/fiscal.service';
 import { SandboxFiscalProvider } from './fiscal/fiscal.provider';
+import { Print3dController } from './print3d/print3d.controller';
+import { Print3dService } from './print3d/print3d.service';
+import { ProjectsController } from './projects/projects.controller';
+import { ProjectsService } from './projects/projects.service';
+import { LeadsController, SocialController } from './social/social.controller';
+import { SocialService } from './social/social.service';
 import { SearchController } from './search/search.controller';
 import { HealthController } from './health/health.controller';
 
@@ -73,6 +79,10 @@ import { HealthController } from './health/health.controller';
     InventoryController,
     PosController,
     FiscalController,
+    Print3dController,
+    ProjectsController,
+    SocialController,
+    LeadsController,
     SearchController,
   ],
   providers: [
@@ -86,6 +96,9 @@ import { HealthController } from './health/health.controller';
     PosService,
     FiscalService,
     SandboxFiscalProvider,
+    Print3dService,
+    ProjectsService,
+    SocialService,
     { provide: APP_GUARD, useClass: JwtAuthGuard },
     { provide: APP_GUARD, useClass: PermissionsGuard },
     { provide: APP_GUARD, useClass: ModuleEntitlementGuard },

@@ -1,8 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  calculate3dPrintQuote,
   calculatePosSaleTotals,
   calculateQuoteTotals,
+  calculateRetainerBalance,
   checkStockAlert,
   createQuoteSchema,
   hasPermission,
@@ -78,4 +80,29 @@ test('calculatePosSaleTotals and checkStockAlert enforce exact integer cents and
   assert.equal(checkStockAlert(0, 3), 'OUT_OF_STOCK');
   assert.equal(checkStockAlert(3, 3), 'LOW_STOCK');
   assert.equal(checkStockAlert(4, 3), 'OK');
+});
+
+test('calculate3dPrintQuote and calculateRetainerBalance compute costs and utilization', () => {
+  const quote3d = calculate3dPrintQuote({
+    weightGrams: 100,
+    printTimeMinutes: 120,
+    filamentCostPerKgCents: 12000,
+    printerWatts: 200,
+    kwhPriceCents: 100,
+    machineHourlyRateCents: 400,
+    failureMarginPercent: 10,
+    profitMarginPercent: 100,
+  });
+
+  // material: 1200, energy: 2h * 0.2kW * 100 = 40, machine: 2h * 400 = 800 -> base = 2040 -> +10% = 2244 -> +100% = 4488
+  assert.equal(quote3d.materialCostCents, 1200);
+  assert.equal(quote3d.energyCostCents, 40);
+  assert.equal(quote3d.machineCostCents, 800);
+  assert.equal(quote3d.totalCostCents, 2244);
+  assert.equal(quote3d.suggestedPriceCents, 4488);
+
+  const retainer = calculateRetainerBalance(600, 500);
+  assert.equal(retainer.remainingMinutes, 100);
+  assert.equal(retainer.utilizationPercent, 83.33);
+  assert.equal(retainer.isNearLimit, true);
 });

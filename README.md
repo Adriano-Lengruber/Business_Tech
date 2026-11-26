@@ -44,9 +44,9 @@ Cada organização (`tenant`) ativa apenas os módulos necessários para o seu n
 | `mod-ai-agents` | **Agentes de IA & WhatsApp** | AI Gateway local-first, Adapter WhatsApp (Evolution/Sandbox), BullMQ Debounce, Handoff e Copiloto Diagnóstico. | MVP Implementado (Fase 1–2) |
 | `mod-inventory-pos` | **Estoque, Compras & PDV** | Catálogo multi-segmento, ledger de estoque, alertas, fornecedores/compras, baixa na OS e PDV rápido. | Implementado (Fase 3) |
 | `mod-finance-fiscal` | **Financeiro & Fiscal BR** | Contas a pagar/receber, fluxo líquido, PIX Asaas/Sandbox com webhook e camada fiscal NF-e/NFC-e/NFS-e + IA. | Implementado (Fase 2–3) |
-| `mod-3d-print` | **Estúdio de Impressão 3D** | Biblioteca STL/3MF com preview Three.js, cálculo automático de custo (filamento + energia + máquina) e fila de impressoras. | Planejado (Fase 5) |
-| `mod-projects-dev` | **Projetos & Software** | Kanban/Sprints, apontamento de horas (*timesheet*), marcos e contratos de horas mensais (*retainer*). | Planejado (Fase 5) |
-| `mod-social-growth` | **Social Media & Growth IA** | Calendário editorial, geração de posts a partir de entregas reais, agendamento, métricas e conversão de comentários/DMs em Leads. | Planejado (Fase 5) |
+| `mod-3d-print` | **Estúdio de Impressão 3D** | Visualizador STL/3MF Three.js, calculadora de custo (material/energia/máquina), filamentos e fila. | Implementado (Fase 4) |
+| `mod-projects-dev` | **Projetos & Software** | Kanban interativo, apontamento de horas (*timesheet*) e saldo mensal de contratos *retainer*. | Implementado (Fase 4) |
+| `mod-social-growth` | **Social Media & Growth IA** | Geração de posts com IA, aprovação humana, métricas e conversão de comentários/DMs em Leads no CRM. | Implementado (Fase 4) |
 
 ---
 

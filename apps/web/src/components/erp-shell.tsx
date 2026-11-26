@@ -5,13 +5,16 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
   Boxes,
+  Code2,
   DollarSign,
   FileCheck2,
   LayoutDashboard,
   LogOut,
+  Megaphone,
   MessageSquare,
   Package,
   PlusCircle,
+  Printer,
   ShoppingCart,
   Wrench,
 } from 'lucide-react';
@@ -121,6 +124,24 @@ export function ErpShell({
       label: 'Notas Fiscais (SEFAZ)',
       icon: FileCheck2,
       show: session.enabledModules.includes('mod-finance-fiscal'),
+    },
+    {
+      href: '/app/print3d',
+      label: 'Impressão 3D',
+      icon: Printer,
+      show: session.enabledModules.includes('mod-3d-print'),
+    },
+    {
+      href: '/app/projects',
+      label: 'Projetos & Software',
+      icon: Code2,
+      show: session.enabledModules.includes('mod-projects-dev'),
+    },
+    {
+      href: '/app/social',
+      label: 'Social & Growth IA',
+      icon: Megaphone,
+      show: session.enabledModules.includes('mod-social-growth'),
     },
     {
       href: '/app/modules',

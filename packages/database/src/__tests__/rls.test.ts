@@ -15,6 +15,10 @@ import {
   products,
   sales,
   fiscalDocuments,
+  filaments,
+  projects,
+  socialPosts,
+  leads,
 } from '../schema/index.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -114,6 +118,30 @@ test('PostgreSQL RLS strictly isolates customers, OS, diagnostics, quotes and fi
         referenceId: osA!.id,
         totalCents: 10000,
       });
+
+      await tx.insert(filaments).values({
+        organizationId: orgAId,
+        name: 'PLA Org A',
+        color: 'Azul',
+        costPerKgCents: 11000,
+      });
+
+      await tx.insert(projects).values({
+        organizationId: orgAId,
+        code: 'PRJ-RLS-A',
+        title: 'Projeto A',
+      });
+
+      await tx.insert(socialPosts).values({
+        organizationId: orgAId,
+        title: 'Post A',
+        caption: 'Legenda A',
+      });
+
+      await tx.insert(leads).values({
+        organizationId: orgAId,
+        name: 'Lead A',
+      });
     });
 
     await withTenantContext(db, orgBId, async (tx) => {
@@ -143,6 +171,10 @@ test('PostgreSQL RLS strictly isolates customers, OS, diagnostics, quotes and fi
       products: await tx.select().from(products),
       sales: await tx.select().from(sales),
       fiscal: await tx.select().from(fiscalDocuments),
+      filaments: await tx.select().from(filaments),
+      projects: await tx.select().from(projects),
+      socialPosts: await tx.select().from(socialPosts),
+      leads: await tx.select().from(leads),
     }));
 
     const orgBView = await withTenantContext(db, orgBId, async (tx) => ({
@@ -154,6 +186,10 @@ test('PostgreSQL RLS strictly isolates customers, OS, diagnostics, quotes and fi
       products: await tx.select().from(products),
       sales: await tx.select().from(sales),
       fiscal: await tx.select().from(fiscalDocuments),
+      filaments: await tx.select().from(filaments),
+      projects: await tx.select().from(projects),
+      socialPosts: await tx.select().from(socialPosts),
+      leads: await tx.select().from(leads),
     }));
 
     assert.equal(orgAView.customers.length, 1);
@@ -164,6 +200,10 @@ test('PostgreSQL RLS strictly isolates customers, OS, diagnostics, quotes and fi
     assert.equal(orgAView.products.length, 1);
     assert.equal(orgAView.sales.length, 1);
     assert.equal(orgAView.fiscal.length, 1);
+    assert.equal(orgAView.filaments.length, 1);
+    assert.equal(orgAView.projects.length, 1);
+    assert.equal(orgAView.socialPosts.length, 1);
+    assert.equal(orgAView.leads.length, 1);
 
     assert.equal(orgBView.customers.length, 1);
     assert.equal(orgBView.orders[0]?.code, 'OS-RLS-B1');
@@ -173,6 +213,10 @@ test('PostgreSQL RLS strictly isolates customers, OS, diagnostics, quotes and fi
     assert.equal(orgBView.products.length, 0);
     assert.equal(orgBView.sales.length, 0);
     assert.equal(orgBView.fiscal.length, 0);
+    assert.equal(orgBView.filaments.length, 0);
+    assert.equal(orgBView.projects.length, 0);
+    assert.equal(orgBView.socialPosts.length, 0);
+    assert.equal(orgBView.leads.length, 0);
   } finally {
     if (orgAId) {
       await db.delete(organizations).where(eq(organizations.id, orgAId));

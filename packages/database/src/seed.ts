@@ -21,6 +21,11 @@ import {
   suppliers,
   products,
   fiscalProfiles,
+  filaments,
+  print3dJobs,
+  projects,
+  projectTasks,
+  socialPosts,
   conversations,
   messages,
 } from './schema/index.js';
@@ -503,6 +508,124 @@ async function seed() {
         providerName: 'sandbox',
       })
       .onConflictDoNothing();
+
+    const existingFilaments = await db
+      .select({ id: filaments.id })
+      .from(filaments)
+      .where(eq(filaments.organizationId, orgId))
+      .limit(1);
+
+    if (existingFilaments.length === 0) {
+      const [pla] = await db
+        .insert(filaments)
+        .values([
+          {
+            organizationId: orgId,
+            name: 'PLA Silk Grafite',
+            materialType: 'PLA',
+            color: 'Grafite Metálico',
+            brand: '3DLab',
+            costPerKgCents: 11500,
+            stockGrams: 1850,
+            minGrams: 300,
+          },
+          {
+            organizationId: orgId,
+            name: 'PETG Preto Técnico',
+            materialType: 'PETG',
+            color: 'Preto',
+            brand: 'Voolt3D',
+            costPerKgCents: 13000,
+            stockGrams: 950,
+            minGrams: 300,
+          },
+        ])
+        .returning({ id: filaments.id });
+
+      await db.insert(print3dJobs).values({
+        organizationId: orgId,
+        filamentId: pla!.id,
+        code: '3D-2026-0001',
+        modelName: 'Suporte Articulado Notebook + Hub USB',
+        status: 'READY',
+        weightGrams: 145,
+        printTimeMinutes: 260,
+        totalCostCents: 3820,
+        salePriceCents: 8900,
+        notes: 'Infill 25% Gyroid, camada 0.2mm',
+      });
+    }
+
+    const existingProjects = await db
+      .select({ id: projects.id })
+      .from(projects)
+      .where(eq(projects.organizationId, orgId))
+      .limit(1);
+
+    if (existingProjects.length === 0) {
+      const [prj] = await db
+        .insert(projects)
+        .values({
+          organizationId: orgId,
+          code: 'PRJ-2026-0001',
+          title: 'Portal Interno & Automação WhatsApp — Cliente Corporativo',
+          projectType: 'automation_ai',
+          budgetCents: 450000,
+          retainerMinutesMonthly: 1200,
+          hourlyRateCents: 18000,
+        })
+        .returning({ id: projects.id });
+
+      await db.insert(projectTasks).values([
+        {
+          organizationId: orgId,
+          projectId: prj!.id,
+          title: 'Configurar webhook Evolution API + debounce',
+          status: 'DONE',
+          priority: 'HIGH',
+          estimatedMinutes: 180,
+        },
+        {
+          organizationId: orgId,
+          projectId: prj!.id,
+          title: 'Integrar painel de aprovação de orçamentos',
+          status: 'IN_PROGRESS',
+          priority: 'HIGH',
+          estimatedMinutes: 240,
+        },
+        {
+          organizationId: orgId,
+          projectId: prj!.id,
+          title: 'Publicar dashboard de métricas semanais',
+          status: 'BACKLOG',
+          priority: 'NORMAL',
+          estimatedMinutes: 120,
+        },
+      ]);
+    }
+
+    const existingSocial = await db
+      .select({ id: socialPosts.id })
+      .from(socialPosts)
+      .where(eq(socialPosts.organizationId, orgId))
+      .limit(1);
+
+    if (existingSocial.length === 0) {
+      await db.insert(socialPosts).values({
+        organizationId: orgId,
+        platform: 'instagram',
+        status: 'PUBLISHED',
+        title: 'Antes e depois: limpeza térmica em notebook gamer',
+        caption:
+          'Seu notebook está esquentando e perdendo desempenho? Aqui na AL Tech fazemos diagnóstico térmico completo e troca por pasta de alta condutividade com garantia de 90 dias.',
+        hashtags: '#assistenciatecnica #manutencaonotebook #altech',
+        publishedAt: new Date(),
+        impressions: 1420,
+        likes: 94,
+        commentsCount: 12,
+        leadsGenerated: 3,
+      });
+    }
 
     console.log('[seed] Seed concluído com sucesso para AL Tech & Soluções.');
   } finally {
