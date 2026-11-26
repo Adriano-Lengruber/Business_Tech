@@ -13,7 +13,16 @@ import {
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { randomBytes } from 'node:crypto';
 import QRCode from 'qrcode';
-import { assets, auditLogs, customers, desc, eq } from '@al/database';
+import {
+  assets,
+  auditLogs,
+  customers,
+  desc,
+  eq,
+  hardwareDiagnosticSnapshots,
+  serviceOrders,
+  warrantyCases,
+} from '@al/database';
 import { createAssetSchema, updateAssetVipSchema } from '@al/shared';
 import {
   CurrentUser,
@@ -190,6 +199,55 @@ export class AssetsController {
       });
 
       return updated!;
+    });
+  }
+
+  @Get(':id/history')
+  @RequirePermission('os:read')
+  @ApiOperation({
+    summary: 'Histórico permanente consolidado do equipamento (OS, snapshots e garantias)',
+  })
+  async getAssetHistory(
+    @Param('id') id: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.database.withTenant(user.organizationId, async (tx) => {
+      const [asset] = await tx
+        .select()
+        .from(assets)
+        .where(eq(assets.id, id))
+        .limit(1);
+
+      if (!asset) {
+        throw new NotFoundException('Equipamento não encontrado.');
+      }
+
+      const [orders, snapshots, warranties] = await Promise.all([
+        tx
+          .select({
+            id: serviceOrders.id,
+            code: serviceOrders.code,
+            status: serviceOrders.status,
+            priority: serviceOrders.priority,
+            reportedSymptoms: serviceOrders.reportedSymptoms,
+            createdAt: serviceOrders.createdAt,
+          })
+          .from(serviceOrders)
+          .where(eq(serviceOrders.assetId, id))
+          .orderBy(desc(serviceOrders.createdAt)),
+        tx
+          .select()
+          .from(hardwareDiagnosticSnapshots)
+          .where(eq(hardwareDiagnosticSnapshots.assetId, id))
+          .orderBy(desc(hardwareDiagnosticSnapshots.createdAt)),
+        tx
+          .select()
+          .from(warrantyCases)
+          .where(eq(warrantyCases.assetId, id))
+          .orderBy(desc(warrantyCases.createdAt)),
+      ]);
+
+      return { asset, orders, snapshots, warranties };
     });
   }
 }

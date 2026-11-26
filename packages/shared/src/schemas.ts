@@ -223,6 +223,8 @@ export type CreateSupplierInput = z.infer<typeof createSupplierSchema>;
 
 export const createPurchaseOrderSchema = z.object({
   supplierId: z.string().uuid(),
+  linkedServiceOrderId: z.string().uuid().optional().nullable(),
+  expectedArrivalAt: z.string().datetime().optional().nullable(),
   notes: z.string().max(1000).optional(),
   items: z
     .array(
@@ -522,4 +524,16 @@ export const createAutomationRuleSchema = z.object({
 });
 export type CreateAutomationRuleInput = z.infer<
   typeof createAutomationRuleSchema
+>;
+
+export const createServiceCatalogItemSchema = z.object({
+  name: z.string().min(2, 'Nome do serviço obrigatório').max(180),
+  category: z.string().min(2).max(60).default('manutencao'),
+  defaultLaborCents: z.coerce.number().int().min(0),
+  estimatedCostCents: z.coerce.number().int().min(0).default(0),
+  defaultWarrantyDays: z.coerce.number().int().min(0).max(1825).default(90),
+  estimatedHours: z.coerce.number().int().min(1).max(200).default(2),
+});
+export type CreateServiceCatalogItemInput = z.infer<
+  typeof createServiceCatalogItemSchema
 >;

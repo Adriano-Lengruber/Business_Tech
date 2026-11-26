@@ -24,6 +24,7 @@ import { HardwareSnapshotsController } from './service-orders/hardware-snapshots
 import { WarrantiesController } from './service-orders/warranties.controller';
 import { OsOpsController } from './service-orders/os-ops.controller';
 import { ChecklistsController } from './service-orders/checklists.controller';
+import { ServiceCatalogController } from './service-orders/service-catalog.controller';
 import { DiagnosticReportPdfService } from './service-orders/diagnostic-report-pdf.service';
 import { QuotesController } from './service-orders/quotes.controller';
 import { ContractsController } from './contracts/contracts.controller';
@@ -91,6 +92,7 @@ import { HealthController } from './health/health.controller';
     WarrantiesController,
     OsOpsController,
     ChecklistsController,
+    ServiceCatalogController,
     QuotesController,
     ContractsController,
     SourcingController,

@@ -119,6 +119,16 @@ function OsDetailContent() {
   const [checklistTemplates, setChecklistTemplates] = useState<
     ChecklistTemplateRow[]
   >([]);
+  const [serviceCatalog, setServiceCatalog] = useState<
+    Array<{
+      id: string;
+      code: string;
+      name: string;
+      defaultLaborCents: number;
+      estimatedCostCents: number;
+      defaultWarrantyDays: number;
+    }>
+  >([]);
 
   const [nextStatus, setNextStatus] = useState<OsStatus>('DIAGNOSIS');
   const [note, setNote] = useState('');
@@ -160,7 +170,7 @@ function OsDetailContent() {
   const load = useCallback(async () => {
     const token = window.localStorage.getItem('al_token');
     if (!token || !params.id) return;
-    const [data, diags, qList, hw, warList, timerState, chk, tplList] =
+    const [data, diags, qList, hw, warList, timerState, chk, tplList, catList] =
       await Promise.all([
         apiFetch<OsDetail>(`/service-orders/${params.id}`, { token }),
         apiFetch<DiagnosticRow[]>(`/service-orders/${params.id}/diagnostics`, {
@@ -180,6 +190,16 @@ function OsDetailContent() {
           { token },
         ),
         apiFetch<ChecklistTemplateRow[]>('/checklists/templates', { token }),
+        apiFetch<
+          Array<{
+            id: string;
+            code: string;
+            name: string;
+            defaultLaborCents: number;
+            estimatedCostCents: number;
+            defaultWarrantyDays: number;
+          }>
+        >('/service-catalog', { token }).catch(() => []),
       ]);
     setDetail(data);
     setNextStatus(data.os.status);
@@ -190,6 +210,7 @@ function OsDetailContent() {
     setTimers(timerState);
     setOsChecklist(chk);
     setChecklistTemplates(tplList);
+    setServiceCatalog(catList);
   }, [params.id]);
 
   useEffect(() => {
@@ -813,25 +834,94 @@ function OsDetailContent() {
             </div>
 
             <div className="flex flex-wrap items-center justify-between gap-4 border-t border-border pt-4">
-              <button
-                type="button"
-                onClick={() =>
-                  setQuoteItems((prev) => [
-                    ...prev,
-                    {
-                      itemType: 'part',
-                      description: '',
-                      quantity: 1,
-                      unitCostBrl: '0',
-                      unitPriceBrl: '0',
-                    },
-                  ])
-                }
-                className="inline-flex items-center gap-1.5 text-xs font-medium text-accent hover:underline"
-              >
-                <Plus className="h-3.5 w-3.5" />
-                Adicionar item
-              </button>
+              <div className="flex flex-wrap items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() =>
+                    setQuoteItems((prev) => [
+                      ...prev,
+                      {
+                        itemType: 'part',
+                        description: '',
+                        quantity: 1,
+                        unitCostBrl: '0',
+                        unitPriceBrl: '0',
+                      },
+                    ])
+                  }
+                  className="inline-flex items-center gap-1.5 text-xs font-medium text-accent hover:underline"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  Adicionar item
+                </button>
+
+                {serviceCatalog.length > 0 && (
+                  <select
+                    defaultValue=""
+                    onChange={(e) => {
+                      const found = serviceCatalog.find(
+                        (s) => s.id === e.target.value,
+                      );
+                      if (!found) return;
+                      setQuoteItems((prev) => [
+                        ...prev,
+                        {
+                          itemType: 'labor',
+                          description: found.name,
+                          quantity: 1,
+                          unitCostBrl: (found.estimatedCostCents / 100).toFixed(2),
+                          unitPriceBrl: (found.defaultLaborCents / 100).toFixed(2),
+                        },
+                      ]);
+                      setWarrantyDays(found.defaultWarrantyDays);
+                      e.target.value = '';
+                    }}
+                    className="rounded-xl border border-border bg-bg px-3 py-1.5 text-xs"
+                  >
+                    <option value="">+ Puxar do catálogo de serviços...</option>
+                    {serviceCatalog.map((srv) => (
+                      <option key={srv.id} value={srv.id}>
+                        {srv.code} — {srv.name} ({formatBrl(srv.defaultLaborCents)})
+                      </option>
+                    ))}
+                  </select>
+                )}
+
+                {detail.asset?.acquiredFromStore && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const pct = detail.asset?.vipDiscountPct || 20;
+                      const subtotalCents = quoteItems
+                        .filter((i) => i.itemType !== 'discount')
+                        .reduce(
+                          (acc, i) =>
+                            acc +
+                            (Number(i.quantity) || 1) *
+                              Math.round(
+                                (Number(i.unitPriceBrl.replace(',', '.')) || 0) *
+                                  100,
+                              ),
+                          0,
+                        );
+                      const discBrl = ((subtotalCents * (pct / 100)) / 100).toFixed(2);
+                      setQuoteItems((prev) => [
+                        ...prev.filter((i) => i.itemType !== 'discount'),
+                        {
+                          itemType: 'discount',
+                          description: `Desconto Paciente VIP Loja (-${pct}%)`,
+                          quantity: 1,
+                          unitCostBrl: '0',
+                          unitPriceBrl: discBrl,
+                        },
+                      ]);
+                    }}
+                    className="rounded-xl border border-accent/40 bg-accent/10 px-3 py-1.5 text-xs font-semibold text-accent hover:bg-accent/20"
+                  >
+                    Aplicar Desconto VIP (-{detail.asset.vipDiscountPct ?? 20}%)
+                  </button>
+                )}
+              </div>
 
               <div className="flex flex-wrap items-center gap-4 text-sm">
                 <span className="font-mono text-xs text-text-secondary">

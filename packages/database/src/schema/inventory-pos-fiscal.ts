@@ -10,7 +10,7 @@ import {
   index,
 } from 'drizzle-orm/pg-core';
 import { organizations } from './core.js';
-import { customers } from './crm-os.js';
+import { customers, serviceOrders } from './crm-os.js';
 
 export const suppliers = pgTable(
   'suppliers',
@@ -100,6 +100,11 @@ export const purchaseOrders = pgTable(
     code: varchar('code', { length: 40 }).notNull(),
     status: varchar('status', { length: 24 }).notNull().default('ORDERED'),
     totalCostCents: integer('total_cost_cents').notNull().default(0),
+    linkedServiceOrderId: uuid('linked_service_order_id').references(
+      () => serviceOrders.id,
+      { onDelete: 'set null' },
+    ),
+    expectedArrivalAt: timestamp('expected_arrival_at', { withTimezone: true }),
     notes: text('notes'),
     receivedAt: timestamp('received_at', { withTimezone: true }),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),

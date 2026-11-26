@@ -275,6 +275,8 @@ export class InventoryService {
           code: purchaseOrders.code,
           status: purchaseOrders.status,
           totalCostCents: purchaseOrders.totalCostCents,
+          linkedServiceOrderId: purchaseOrders.linkedServiceOrderId,
+          expectedArrivalAt: purchaseOrders.expectedArrivalAt,
           notes: purchaseOrders.notes,
           receivedAt: purchaseOrders.receivedAt,
           createdAt: purchaseOrders.createdAt,
@@ -303,6 +305,10 @@ export class InventoryService {
       const nextNum = (countRes[0]?.count ?? 0) + 1;
       const code = `PO-${new Date().getFullYear()}-${String(nextNum).padStart(4, '0')}`;
 
+      const expectedArrival = input.expectedArrivalAt
+        ? new Date(input.expectedArrivalAt)
+        : null;
+
       const [po] = await tx
         .insert(purchaseOrders)
         .values({
@@ -311,9 +317,32 @@ export class InventoryService {
           code,
           status: 'ORDERED',
           totalCostCents,
+          linkedServiceOrderId: input.linkedServiceOrderId ?? null,
+          expectedArrivalAt: expectedArrival,
           notes: input.notes?.trim() || null,
         })
         .returning();
+
+      if (input.linkedServiceOrderId) {
+        await tx
+          .update(serviceOrders)
+          .set({
+            status: 'AWAITING_PART',
+            ...(expectedArrival ? { promisedAt: expectedArrival } : {}),
+            updatedAt: new Date(),
+          })
+          .where(eq(serviceOrders.id, input.linkedServiceOrderId));
+
+        await tx.insert(serviceOrderEvents).values({
+          organizationId,
+          serviceOrderId: input.linkedServiceOrderId,
+          eventType: 'part.ordered',
+          toStatus: 'AWAITING_PART',
+          note: `Peça encomendada via Pedido ${code}${expectedArrival ? ` (previsão ${expectedArrival.toLocaleDateString('pt-BR')})` : ''}.`,
+          actorType: 'human',
+          actorId: userId,
+        });
+      }
 
       await tx.insert(purchaseOrderItems).values(
         input.items.map((it) => ({
@@ -401,6 +430,23 @@ export class InventoryService {
           .set({ status: 'RECEIVED', receivedAt: new Date() })
           .where(and(eq(purchaseOrders.id, po.id)))
           .returning();
+
+        if (po.linkedServiceOrderId) {
+          await tx
+            .update(serviceOrders)
+            .set({ status: 'IN_REPAIR', updatedAt: new Date() })
+            .where(eq(serviceOrders.id, po.linkedServiceOrderId));
+
+          await tx.insert(serviceOrderEvents).values({
+            organizationId,
+            serviceOrderId: po.linkedServiceOrderId,
+            eventType: 'part.received',
+            toStatus: 'IN_REPAIR',
+            note: `Peça do Pedido ${po.code} recebida no estoque; OS liberada para bancada.`,
+            actorType: 'human',
+            actorId: userId,
+          });
+        }
 
         return updatedPo!;
       },
