@@ -1,6 +1,12 @@
 import { z } from 'zod';
 import { MODULE_CODES } from './modules.js';
 import { OS_PRIORITIES, OS_STATUSES } from './os-status.js';
+import {
+  FINANCIAL_TYPES,
+  PAYMENT_METHODS,
+  QUOTE_ITEM_TYPES,
+  QUOTE_TIERS,
+} from './finance.js';
 
 export const loginSchema = z.object({
   email: z.string().email('Informe um e-mail válido'),
@@ -97,3 +103,61 @@ export const replyConversationSchema = z.object({
   text: z.string().min(1, 'Digite uma mensagem').max(3000),
 });
 export type ReplyConversationInput = z.infer<typeof replyConversationSchema>;
+
+export const upsertDiagnosticSchema = z.object({
+  category: z.string().min(2).max(60).default('geral'),
+  observedFacts: z.string().min(4, 'Descreva os fatos observados').max(4000),
+  testsPerformed: z
+    .array(
+      z.object({
+        name: z.string().min(1).max(160),
+        passed: z.boolean(),
+        notes: z.string().max(400).optional(),
+      }),
+    )
+    .default([]),
+  finalDiagnosis: z.string().max(4000).optional(),
+  confidenceLevel: z.enum(['low', 'medium', 'high']).default('medium'),
+  clientExplanation: z.string().max(3000).optional(),
+  moveToAwaitingQuote: z.boolean().default(false),
+});
+export type UpsertDiagnosticInput = z.infer<typeof upsertDiagnosticSchema>;
+
+export const createQuoteSchema = z.object({
+  tier: z.enum(QUOTE_TIERS).default('recommended'),
+  warrantyDays: z.coerce.number().int().min(0).max(3650).default(90),
+  validDays: z.coerce.number().int().min(1).max(180).default(7),
+  paymentTerms: z.string().max(240).default('PIX à vista ou até 3x no cartão'),
+  clientNotes: z.string().max(2000).optional(),
+  sendImmediately: z.boolean().default(false),
+  items: z
+    .array(
+      z.object({
+        itemType: z.enum(QUOTE_ITEM_TYPES),
+        description: z.string().min(2).max(240),
+        quantity: z.coerce.number().positive().max(1000).default(1),
+        unitCostCents: z.coerce.number().int().min(0).default(0),
+        unitPriceCents: z.coerce.number().int().min(0),
+      }),
+    )
+    .min(1, 'Adicione ao menos 1 item ao orçamento'),
+});
+export type CreateQuoteInput = z.infer<typeof createQuoteSchema>;
+
+export const portalQuoteDecisionSchema = z.object({
+  decision: z.enum(['APPROVED', 'REJECTED']),
+  paymentMethod: z.enum(PAYMENT_METHODS).default('pix'),
+  customerNote: z.string().max(1000).optional(),
+});
+export type PortalQuoteDecisionInput = z.infer<typeof portalQuoteDecisionSchema>;
+
+export const createTransactionSchema = z.object({
+  type: z.enum(FINANCIAL_TYPES),
+  category: z.string().min(2).max(80),
+  description: z.string().min(2).max(240),
+  paymentMethod: z.enum(PAYMENT_METHODS).default('pix'),
+  amountCents: z.coerce.number().int().positive('Valor deve ser maior que zero'),
+  dueDate: z.string().datetime().optional(),
+  serviceOrderId: z.string().uuid().optional().nullable(),
+});
+export type CreateTransactionInput = z.infer<typeof createTransactionSchema>;

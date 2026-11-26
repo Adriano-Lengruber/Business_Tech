@@ -18,8 +18,18 @@ import { CustomersController } from './customers/customers.controller';
 import { AssetsController } from './assets/assets.controller';
 import { ServiceOrdersController } from './service-orders/service-orders.controller';
 import { PortalController } from './service-orders/portal.controller';
+import { DiagnosticsController } from './service-orders/diagnostics.controller';
+import { QuotesController } from './service-orders/quotes.controller';
+import { QuotesService } from './service-orders/quotes.service';
 import { ServiceOrdersService } from './service-orders/service-orders.service';
 import { IntakePdfService } from './service-orders/intake-pdf.service';
+import {
+  AsaasWebhookController,
+  FinanceController,
+} from './finance/finance.controller';
+import { FinanceService } from './finance/finance.service';
+import { AsaasPaymentProvider } from './finance/payment.provider';
+import { SearchController } from './search/search.controller';
 import { HealthController } from './health/health.controller';
 
 @Module({
@@ -48,12 +58,20 @@ import { HealthController } from './health/health.controller';
     CustomersController,
     AssetsController,
     ServiceOrdersController,
+    DiagnosticsController,
+    QuotesController,
     PortalController,
+    FinanceController,
+    AsaasWebhookController,
+    SearchController,
   ],
   providers: [
     AuthService,
     ServiceOrdersService,
     IntakePdfService,
+    QuotesService,
+    FinanceService,
+    AsaasPaymentProvider,
     { provide: APP_GUARD, useClass: JwtAuthGuard },
     { provide: APP_GUARD, useClass: PermissionsGuard },
     { provide: APP_GUARD, useClass: ModuleEntitlementGuard },

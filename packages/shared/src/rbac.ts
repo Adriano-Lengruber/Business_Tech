@@ -22,6 +22,8 @@ export const PERMISSIONS = [
   'inbox:handoff',
   'ai:use_copilot',
   'ai:approve_sensitive',
+  'finance:read',
+  'finance:write',
   'audit:read',
 ] as const;
 
@@ -47,6 +49,7 @@ export const ROLE_PERMISSIONS: Record<OrgRole, readonly Permission[]> = {
     'inbox:read',
     'inbox:reply',
     'inbox:handoff',
+    'finance:read',
     'ai:use_copilot',
   ],
   viewer: ['customers:read', 'os:read', 'inbox:read'],

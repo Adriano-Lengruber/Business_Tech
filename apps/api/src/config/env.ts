@@ -35,6 +35,9 @@ const envSchema = z.object({
   EVOLUTION_API_KEY: z.string().default('change_me_evolution_api_key'),
   EVOLUTION_INSTANCE: z.string().default('al-tech-main'),
   WHATSAPP_DEBOUNCE_MS: z.coerce.number().default(4000),
+  ASAAS_BASE_URL: z.string().default('https://sandbox.asaas.com/api/v3'),
+  ASAAS_API_KEY: z.string().default(''),
+  ASAAS_WEBHOOK_TOKEN: z.string().default('change_me_asaas_webhook_token'),
 });
 
 export type AppEnv = z.infer<typeof envSchema>;
