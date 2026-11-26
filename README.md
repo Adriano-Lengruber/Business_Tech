@@ -39,12 +39,12 @@ Cada organização (`tenant`) ativa apenas os módulos necessários para o seu n
 
 | Código | Módulo | O que entrega | Status |
 |---|---|---|---|
-| `core` | **Núcleo CRM & Inbox** *(Obrigatório)* | Multi-tenant RLS, Auth/RBAC, Clientes PF/PJ, Timeline Unificada, Inbox Omnichannel e Portal do Cliente. | Implementado (Fase 0/1) |
-| `mod-service-orders` | **Assistência Técnica & OS** | Balcão expresso, QR Code, S3, Termo PDF, PIN criptografado, Snapshots Antes/Depois, Laudo PDF, Orçamentos 3 Tiers, Garantia/RMA e Portal. | Implementado (Fase 1–7) |
+| `core` | **Núcleo CRM & Inbox** *(Obrigatório)* | Multi-tenant RLS, Auth/RBAC, Clientes PF/PJ (360°), Gestão de Equipe, Audit Logs, API Keys & Webhooks, Inbox Omnichannel e Portal do Cliente. | Implementado (Fase 0–11) |
+| `mod-service-orders` | **Assistência Técnica & OS** | Balcão expresso, QR Code, S3, Termo PDF, PIN criptografado, Snapshots Antes/Depois, Laudo PDF, Checklists obrigatórios, Timers, Assinatura, Catálogo de Serviços, Garantia/RMA e Portal. | Implementado (Fase 1–10) |
 | `mod-contracts-sla` | **Contratos B2B, Preventiva & SLA** | Planos recorrentes de suporte TI, franquia de horas, ativos cobertos, SLA e agenda preventiva integrada ao financeiro. | Implementado (Fase 7) |
-| `mod-ai-agents` | **Agentes de IA & WhatsApp** | AI Gateway local-first, WhatsApp Adapter, BullMQ Debounce, Handoff, RAG híbrido (`pgvector`+RRF), Briefing Diário e Copiloto `Ctrl+K`. | Implementado (Fase 1–5) |
-| `mod-inventory-pos` | **Estoque, Compras & PDV** | Catálogo multi-segmento, ledger de estoque, alertas, fornecedores/compras, baixa na OS e PDV rápido. | Implementado (Fase 3) |
-| `mod-finance-fiscal` | **Financeiro & Fiscal BR** | Contas a pagar/receber, fluxo líquido, PIX Asaas/Sandbox com webhook e camada fiscal NF-e/NFC-e/NFS-e + IA. | Implementado (Fase 2–3) |
+| `mod-ai-agents` | **Agentes de IA & WhatsApp** | AI Gateway local-first, WhatsApp Adapter, BullMQ Debounce, Handoff, RAG híbrido (`pgvector`+RRF), Briefing Diário instantâneo, Copiloto `Ctrl+K` e Motor de Automações. | Implementado (Fase 1–9) |
+| `mod-inventory-pos` | **Estoque, Compras & PDV** | Catálogo completo com foto S3, 3 tabelas (Varejo/Atacado/VIP), Kardex, CRUD Fornecedores B2B + vínculo M:N, Pedidos de Compra c/ OS, Cotação B2B vs Marketplace PF e PDV rápido. | Implementado (Fase 3–12) |
+| `mod-finance-fiscal` | **Financeiro & Fiscal BR** | Contas a pagar/receber c/ baixa e edição, DRE por categoria, sincronismo em tempo real com gráficos BI (7d/30d), PIX Asaas/Sandbox com webhook e NF-e/NFC-e/NFS-e + IA. | Implementado (Fase 2–12) |
 | `mod-3d-print` | **Estúdio de Impressão 3D** | Visualizador STL/3MF Three.js, calculadora de custo (material/energia/máquina), filamentos e fila. | Implementado (Fase 4) |
 | `mod-projects-dev` | **Projetos & Software** | Kanban interativo, apontamento de horas (*timesheet*) e saldo mensal de contratos *retainer*. | Implementado (Fase 4) |
 | `mod-social-growth` | **Social Media & Growth IA** | Geração de posts com IA, aprovação humana, métricas e conversão de comentários/DMs em Leads no CRM. | Implementado (Fase 4) |
@@ -162,8 +162,14 @@ pnpm.cmd dev
 # Verificação de tipos TypeScript em todos os pacotes e apps
 pnpm.cmd typecheck
 
-# Suíte de testes automatizados (RBAC, AI Gateway/Risk Matrix, Guards e isolamento real PostgreSQL RLS)
+# Suíte de testes automatizados (RBAC, AI Gateway/Risk Matrix, Guards, Finance/Analytics Sync e PostgreSQL RLS)
 pnpm.cmd test
+
+# Smoke Test HTTP de todas as rotas Web + API em runtime
+node scripts/automated-smoke.mjs
+
+# Testes E2E em navegador headless real (Playwright — requer :3000 e :3001 ativos)
+pnpm.cmd --filter @al/web test:e2e
 ```
 
 ---
@@ -176,5 +182,7 @@ pnpm.cmd test
 | [02 — Arquitetura & ADRs](docs/02-arquitetura-e-adrs.md) | Diagramas C4, Monólito Modular, Entitlements, RLS e ADRs 001–006. |
 | [03 — Engenharia & Modelo de Dados](docs/03-modelo-dados-e-engenharia-dados.md) | ERD completo, índices `GIN`/`HNSW`, *append-only ledgers* e preparação para Data Science. |
 | [04 — IA Agêntica & Ciência de Dados](docs/04-ia-agentica-e-ciencia-dados.md) | Roteamento *local-first*, RAG híbrido, máquina de estados WhatsApp + Handoff e Evals. |
-| [05 — Design System & UX](docs/05-design-system.md) | Tokens Light/Dark, tipografia, densidade adaptativa e modo *Solo Operator*. |
+| [05 — Design System & UX](docs/05-design-system.md) | Tokens *Atelier Obsidian & Mineral Paper* (Light/Dark), tipografia e gráficos BI. |
 | [06 — Ambiente Isolado & Operação](docs/06-guia-ambiente-e-operacao.md) | Isolamento Windows/Docker, Git Flow, Conventional Commits e backup/LGPD. |
+| [08 — Guia Fornecedores & Estratégia MEI](docs/08-fornecedores-estrategia-mei.md) | Curadoria de distribuidores B2B que aceitam MEI (hardware, telas notebook, 3D) e script de cotação. |
+| [09 — Auditoria UX, CRUD & Consistência v2](docs/09-auditoria-ux-crud-v2.md) | Levantamento completo tela a tela e plano de consistência operacional. |

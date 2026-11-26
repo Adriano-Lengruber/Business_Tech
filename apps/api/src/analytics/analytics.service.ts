@@ -21,6 +21,8 @@ export interface DailyCashflowPoint {
   label: string;
   incomeCents: number;
   expenseCents: number;
+  pendingIncomeCents: number;
+  pendingExpenseCents: number;
   netCents: number;
 }
 
@@ -30,7 +32,7 @@ export class AnalyticsService {
     @Inject(DatabaseService) private readonly database: DatabaseService,
   ) {}
 
-  async getOverview(organizationId: string) {
+  async getOverview(organizationId: string, days: 7 | 30 = 7) {
     return this.database.withTenant(organizationId, async (tx) => {
       const [osRows, txRows, quoteRows, prodRows, custRows] = await Promise.all([
         tx
@@ -120,11 +122,11 @@ export class AnalyticsService {
         tone: b.tone,
       }));
 
-      // 2. Last 7 days cashflow chart
+      // 2. Cashflow chart (days = 7 or 30): confirmed AND pending/scheduled entries
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       const dailyMap = new Map<string, DailyCashflowPoint>();
-      for (let offset = 6; offset >= 0; offset--) {
+      for (let offset = days - 1; offset >= 0; offset--) {
         const d = new Date(today);
         d.setDate(today.getDate() - offset);
         const key = d.toISOString().slice(0, 10);
@@ -137,38 +139,70 @@ export class AnalyticsService {
           label,
           incomeCents: 0,
           expenseCents: 0,
+          pendingIncomeCents: 0,
+          pendingExpenseCents: 0,
           netCents: 0,
         });
       }
 
       let totalIncomeCents = 0;
       let totalExpenseCents = 0;
+      let pendingIncomeCents = 0;
+      let pendingExpenseCents = 0;
       let overdueReceivableCents = 0;
       const nowMs = Date.now();
 
       for (const row of txRows) {
+        if (row.status === 'CANCELED') continue;
+
         const isConfirmed = row.status === 'CONFIRMED' || row.status === 'PAID';
-        if (row.type === 'receivable' || row.type === 'pos_sale') {
+        const isPayable = row.type === 'payable';
+
+        if (!isPayable) {
           if (isConfirmed) {
             totalIncomeCents += row.amountCents;
-          } else if (
-            row.status === 'OVERDUE' ||
-            (row.status === 'PENDING' && row.dueDate.getTime() < nowMs)
-          ) {
-            overdueReceivableCents += row.amountCents;
+          } else {
+            pendingIncomeCents += row.amountCents;
+            if (
+              row.status === 'OVERDUE' ||
+              row.dueDate.getTime() < nowMs
+            ) {
+              overdueReceivableCents += row.amountCents;
+            }
           }
-        } else if (row.type === 'payable' && isConfirmed) {
-          totalExpenseCents += row.amountCents;
+        } else {
+          if (isConfirmed) {
+            totalExpenseCents += row.amountCents;
+          } else {
+            pendingExpenseCents += row.amountCents;
+          }
         }
 
-        const refDate = row.paidAt ?? row.createdAt;
-        const dateKey = refDate.toISOString().slice(0, 10);
-        const bucket = dailyMap.get(dateKey);
-        if (bucket && isConfirmed) {
-          if (row.type === 'payable') {
-            bucket.expenseCents += row.amountCents;
+        // Resolve bucket date so newly created pending expenses or receivables appear in the chart
+        let bucket: DailyCashflowPoint | undefined;
+        if (isConfirmed) {
+          const refDate = row.paidAt ?? row.createdAt;
+          bucket = dailyMap.get(refDate.toISOString().slice(0, 10));
+        } else {
+          const dueKey = row.dueDate.toISOString().slice(0, 10);
+          bucket =
+            dailyMap.get(dueKey) ??
+            dailyMap.get(row.createdAt.toISOString().slice(0, 10));
+        }
+
+        if (bucket) {
+          if (isPayable) {
+            if (isConfirmed) {
+              bucket.expenseCents += row.amountCents;
+            } else {
+              bucket.pendingExpenseCents += row.amountCents;
+            }
           } else {
-            bucket.incomeCents += row.amountCents;
+            if (isConfirmed) {
+              bucket.incomeCents += row.amountCents;
+            } else {
+              bucket.pendingIncomeCents += row.amountCents;
+            }
           }
           bucket.netCents = bucket.incomeCents - bucket.expenseCents;
         }
@@ -236,9 +270,17 @@ export class AnalyticsService {
           ),
         },
         revenueSummary: {
+          days,
           totalIncomeCents,
           totalExpenseCents,
+          pendingIncomeCents,
+          pendingExpenseCents,
+          totalAllExpenseCents: totalExpenseCents + pendingExpenseCents,
           netBalanceCents: totalIncomeCents - totalExpenseCents,
+          projectedBalanceCents:
+            totalIncomeCents +
+            pendingIncomeCents -
+            (totalExpenseCents + pendingExpenseCents),
           overdueReceivableCents,
         },
       };

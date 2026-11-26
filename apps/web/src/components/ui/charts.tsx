@@ -8,6 +8,8 @@ export interface DailyCashflowPoint {
   label: string;
   incomeCents: number;
   expenseCents: number;
+  pendingIncomeCents: number;
+  pendingExpenseCents: number;
   netCents: number;
 }
 
@@ -46,15 +48,26 @@ export function CashflowBarChart({
   data,
   totalIncomeCents,
   totalExpenseCents,
+  pendingIncomeCents = 0,
+  pendingExpenseCents = 0,
+  days = 7,
+  onDaysChange,
 }: {
   data: DailyCashflowPoint[];
   totalIncomeCents: number;
   totalExpenseCents: number;
+  pendingIncomeCents?: number;
+  pendingExpenseCents?: number;
+  days?: 7 | 30;
+  onDaysChange?: (days: 7 | 30) => void;
 }) {
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
   const maxVal = Math.max(
     10000,
-    ...data.flatMap((d) => [d.incomeCents, d.expenseCents]),
+    ...data.flatMap((d) => [
+      d.incomeCents + (d.pendingIncomeCents ?? 0),
+      d.expenseCents + (d.pendingExpenseCents ?? 0),
+    ]),
   );
 
   const activePoint =
@@ -64,43 +77,90 @@ export function CashflowBarChart({
     <Card className="p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <p className="text-xs font-medium uppercase tracking-wider text-text-muted">
-            Fluxo Financeiro (7 dias)
-          </p>
-          <div className="mt-1 flex items-baseline gap-3">
+          <div className="flex items-center gap-2">
+            <p className="text-xs font-medium uppercase tracking-wider text-text-muted">
+              Fluxo Financeiro ({days} dias)
+            </p>
+            {onDaysChange && (
+              <div className="inline-flex rounded-lg border border-border bg-bg p-0.5 text-[10px]">
+                <button
+                  type="button"
+                  onClick={() => onDaysChange(7)}
+                  className={`rounded px-1.5 py-0.5 font-mono font-semibold ${
+                    days === 7
+                      ? 'bg-accent text-accent-foreground'
+                      : 'text-text-secondary'
+                  }`}
+                >
+                  7d
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onDaysChange(30)}
+                  className={`rounded px-1.5 py-0.5 font-mono font-semibold ${
+                    days === 30
+                      ? 'bg-accent text-accent-foreground'
+                      : 'text-text-secondary'
+                  }`}
+                >
+                  30d
+                </button>
+              </div>
+            )}
+          </div>
+          <div className="mt-1 flex flex-wrap items-baseline gap-2.5">
             <span className="font-mono text-xl font-bold tabular-nums text-text-primary">
               {formatBrlExact(totalIncomeCents - totalExpenseCents)}
             </span>
             <span className="text-xs text-text-secondary">
-              saldo líquido confirmado
+              realizado · prev:{' '}
+              <strong className="font-mono">
+                {formatBrlExact(
+                  totalIncomeCents +
+                    pendingIncomeCents -
+                    (totalExpenseCents + pendingExpenseCents),
+                )}
+              </strong>
             </span>
           </div>
         </div>
 
-        <div className="flex items-center gap-4 text-xs">
+        <div className="flex flex-wrap items-center gap-3 text-[11px]">
           <span className="inline-flex items-center gap-1.5 text-text-secondary">
             <span className="h-2.5 w-2.5 rounded-sm bg-accent" />
             Entradas ({formatBrl(totalIncomeCents)})
           </span>
           <span className="inline-flex items-center gap-1.5 text-text-secondary">
             <span className="h-2.5 w-2.5 rounded-sm bg-copper" />
-            Saídas ({formatBrl(totalExpenseCents)})
+            Saídas Pagas ({formatBrl(totalExpenseCents)})
           </span>
+          {pendingExpenseCents > 0 && (
+            <span className="inline-flex items-center gap-1.5 text-warning">
+              <span className="h-2.5 w-2.5 rounded-sm border border-warning bg-warning/35" />
+              A Pagar ({formatBrl(pendingExpenseCents)})
+            </span>
+          )}
         </div>
       </div>
 
       {/* Hover summary bar */}
-      <div className="mt-3 flex items-center justify-between rounded-lg border border-border bg-surface-muted/60 px-3 py-1.5 text-xs">
+      <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border bg-surface-muted/60 px-3 py-1.5 text-xs">
         <span className="font-mono text-text-secondary">
           {activePoint ? `Dia ${activePoint.label}` : 'Sem movimentos'}
         </span>
         {activePoint && (
-          <div className="flex items-center gap-4 font-mono tabular-nums">
+          <div className="flex flex-wrap items-center gap-3 font-mono tabular-nums">
             <span className="text-accent">
               +{formatBrlExact(activePoint.incomeCents)}
+              {activePoint.pendingIncomeCents > 0
+                ? ` (+${formatBrl(activePoint.pendingIncomeCents)} prev)`
+                : ''}
             </span>
             <span className="text-copper">
               -{formatBrlExact(activePoint.expenseCents)}
+              {activePoint.pendingExpenseCents > 0
+                ? ` (-${formatBrl(activePoint.pendingExpenseCents)} pend)`
+                : ''}
             </span>
             <span className="font-semibold text-text-primary">
               Líq: {formatBrlExact(activePoint.netCents)}
@@ -124,42 +184,65 @@ export function CashflowBarChart({
         </div>
 
         {/* Columns */}
-        <div className="relative z-10 flex h-full items-end gap-2 pl-16 pb-6">
+        <div className="relative z-10 flex h-full items-end gap-1.5 pl-16 pb-6">
           {data.map((point, idx) => {
+            const totalDayIn = point.incomeCents + (point.pendingIncomeCents ?? 0);
+            const totalDayOut = point.expenseCents + (point.pendingExpenseCents ?? 0);
             const incomePct = Math.max(
-              point.incomeCents > 0 ? 6 : 2,
-              Math.round((point.incomeCents / maxVal) * 100),
+              totalDayIn > 0 ? 8 : 2,
+              Math.round((totalDayIn / maxVal) * 100),
             );
             const expensePct = Math.max(
-              point.expenseCents > 0 ? 6 : 2,
-              Math.round((point.expenseCents / maxVal) * 100),
+              totalDayOut > 0 ? 8 : 2,
+              Math.round((totalDayOut / maxVal) * 100),
             );
+            const paidOutShare =
+              totalDayOut > 0
+                ? Math.round((point.expenseCents / totalDayOut) * 100)
+                : 100;
+            const paidInShare =
+              totalDayIn > 0
+                ? Math.round((point.incomeCents / totalDayIn) * 100)
+                : 100;
             const isActive = hoveredIndex === idx;
+            const showLabel = days === 7 || idx % 5 === 0 || idx === data.length - 1;
 
             return (
               <div
                 key={point.dateKey}
                 onMouseEnter={() => setHoveredIndex(idx)}
                 onMouseLeave={() => setHoveredIndex(null)}
-                className={`group flex h-full flex-1 flex-col items-center justify-end rounded-lg px-1 pt-2 transition-colors ${
+                className={`group flex h-full flex-1 flex-col items-center justify-end rounded-lg px-0.5 pt-2 transition-colors ${
                   isActive ? 'bg-surface-muted/80' : ''
                 }`}
               >
-                <div className="flex h-full w-full items-end justify-center gap-1.5">
+                <div className="flex h-full w-full items-end justify-center gap-1">
                   <div
-                    className="w-3.5 rounded-t-md bg-accent transition-all duration-300 group-hover:bg-accent-hover sm:w-4"
+                    className="flex w-2.5 flex-col justify-end overflow-hidden rounded-t-md bg-accent/30 transition-all duration-300 sm:w-3.5"
                     style={{ height: `${incomePct}%` }}
-                    title={`Entradas ${point.label}: ${formatBrlExact(point.incomeCents)}`}
-                  />
+                    title={`Entradas ${point.label}: Pago ${formatBrlExact(point.incomeCents)} | Previsto ${formatBrlExact(point.pendingIncomeCents ?? 0)}`}
+                  >
+                    <div
+                      className="w-full bg-accent group-hover:bg-accent-hover"
+                      style={{ height: `${paidInShare}%` }}
+                    />
+                  </div>
                   <div
-                    className="w-3.5 rounded-t-md bg-copper/85 transition-all duration-300 group-hover:bg-copper sm:w-4"
+                    className="flex w-2.5 flex-col justify-end overflow-hidden rounded-t-md bg-warning/45 transition-all duration-300 sm:w-3.5"
                     style={{ height: `${expensePct}%` }}
-                    title={`Saídas ${point.label}: ${formatBrlExact(point.expenseCents)}`}
-                  />
+                    title={`Saídas ${point.label}: Pago ${formatBrlExact(point.expenseCents)} | A Pagar ${formatBrlExact(point.pendingExpenseCents ?? 0)}`}
+                  >
+                    <div
+                      className="w-full bg-copper group-hover:opacity-95"
+                      style={{ height: `${paidOutShare}%` }}
+                    />
+                  </div>
                 </div>
-                <span className="absolute bottom-0 font-mono text-[11px] text-text-muted">
-                  {point.label}
-                </span>
+                {showLabel && (
+                  <span className="absolute bottom-0 font-mono text-[10px] text-text-muted">
+                    {point.label}
+                  </span>
+                )}
               </div>
             );
           })}

@@ -181,20 +181,37 @@ export const createTransactionSchema = z.object({
   description: z.string().min(2).max(240),
   paymentMethod: z.enum(PAYMENT_METHODS).default('pix'),
   amountCents: z.coerce.number().int().positive('Valor deve ser maior que zero'),
-  dueDate: z.string().datetime().optional(),
+  dueDate: z.string().optional(),
+  paidImmediately: z.boolean().default(false),
   serviceOrderId: z.string().uuid().optional().nullable(),
 });
 export type CreateTransactionInput = z.infer<typeof createTransactionSchema>;
+
+export const updateTransactionSchema = z.object({
+  category: z.string().min(2).max(80).optional(),
+  description: z.string().min(2).max(240).optional(),
+  paymentMethod: z.enum(PAYMENT_METHODS).optional(),
+  amountCents: z.coerce.number().int().positive().optional(),
+  dueDate: z.string().optional(),
+  status: z.enum(['PENDING', 'CONFIRMED', 'OVERDUE', 'CANCELED']).optional(),
+});
+export type UpdateTransactionInput = z.infer<typeof updateTransactionSchema>;
 
 export const createProductSchema = z.object({
   sku: z.string().min(2, 'SKU obrigatório').max(60),
   barcode: z.string().max(60).optional(),
   name: z.string().min(2, 'Nome do produto obrigatório').max(180),
+  description: z.string().max(4000).optional(),
   category: z.string().min(2).max(80).default('hardware'),
   brand: z.string().max(80).optional(),
   unit: z.string().max(16).default('UN'),
   costCents: z.coerce.number().int().min(0).default(0),
   priceCents: z.coerce.number().int().min(0),
+  wholesalePriceCents: z.coerce.number().int().min(0).optional().nullable(),
+  vipPriceCents: z.coerce.number().int().min(0).optional().nullable(),
+  warrantyDays: z.coerce.number().int().min(0).max(3650).default(90),
+  preferredSupplierId: z.string().uuid().optional().nullable(),
+  supplierSku: z.string().max(80).optional(),
   stockQty: z.coerce.number().int().min(0).default(0),
   minStockQty: z.coerce.number().int().min(0).default(2),
   ncm: z.string().max(12).optional(),
@@ -202,6 +219,14 @@ export const createProductSchema = z.object({
   csosnDefault: z.string().max(8).default('102'),
 });
 export type CreateProductInput = z.infer<typeof createProductSchema>;
+
+export const updateProductSchema = createProductSchema
+  .omit({ stockQty: true })
+  .partial()
+  .extend({
+    isActive: z.boolean().optional(),
+  });
+export type UpdateProductInput = z.infer<typeof updateProductSchema>;
 
 export const createStockMovementSchema = z.object({
   productId: z.string().uuid(),
@@ -218,8 +243,36 @@ export const createSupplierSchema = z.object({
   email: z.string().email().optional().or(z.literal('')),
   phone: z.string().max(24).optional(),
   leadTimeDays: z.coerce.number().int().min(0).max(365).default(3),
+  websiteUrl: z.string().max(400).optional(),
+  paymentTerms: z.string().max(120).optional(),
+  acceptsMei: z.boolean().default(true),
+  notes: z.string().max(2000).optional(),
 });
 export type CreateSupplierInput = z.infer<typeof createSupplierSchema>;
+
+export const updateSupplierSchema = createSupplierSchema.partial().extend({
+  isActive: z.boolean().optional(),
+});
+export type UpdateSupplierInput = z.infer<typeof updateSupplierSchema>;
+
+export const linkProductSupplierSchema = z.object({
+  supplierId: z.string().uuid(),
+  supplierSku: z.string().max(80).optional(),
+  lastCostCents: z.coerce.number().int().min(0).default(0),
+  supplierUrl: z.string().max(400).optional(),
+  notes: z.string().max(400).optional(),
+  isPreferred: z.boolean().default(false),
+});
+export type LinkProductSupplierInput = z.infer<typeof linkProductSupplierSchema>;
+
+export const updateCustomerSchema = z.object({
+  type: z.enum(['PF', 'PJ']).optional(),
+  name: z.string().min(2).max(180).optional(),
+  phoneE164: z.string().min(8).max(24).optional(),
+  email: z.string().email().optional().or(z.literal('')).nullable(),
+  tags: z.array(z.string().max(40)).optional(),
+});
+export type UpdateCustomerInput = z.infer<typeof updateCustomerSchema>;
 
 export const createPurchaseOrderSchema = z.object({
   supplierId: z.string().uuid(),

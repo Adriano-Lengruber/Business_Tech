@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Body,
   Controller,
+  Delete,
   Get,
   Inject,
   Param,
@@ -53,6 +54,13 @@ export class AutomationsController {
   @ApiOperation({ summary: 'Ativar ou pausar regra de automação' })
   toggle(@Param('id') id: string, @CurrentUser() user: AuthenticatedUser) {
     return this.automations.toggleRule(user.organizationId, id);
+  }
+
+  @Delete('rules/:id')
+  @RequirePermission('os:write')
+  @ApiOperation({ summary: 'Excluir regra de automação' })
+  remove(@Param('id') id: string, @CurrentUser() user: AuthenticatedUser) {
+    return this.automations.deleteRule(user.organizationId, id);
   }
 
   @Post('run-now')

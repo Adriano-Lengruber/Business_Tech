@@ -11,9 +11,11 @@ import {
   desc,
   eq,
   ilike,
+  inArray,
   inventoryMovements,
   or,
   products,
+  productSuppliers,
   purchaseOrderItems,
   purchaseOrders,
   serviceOrderEvents,
@@ -28,45 +30,109 @@ import {
   type CreatePurchaseOrderInput,
   type CreateStockMovementInput,
   type CreateSupplierInput,
+  type LinkProductSupplierInput,
+  type UpdateProductInput,
+  type UpdateSupplierInput,
 } from '@al/shared';
 import { DatabaseService } from '../database/database.module';
 import { FinanceService } from '../finance/finance.service';
+import { StorageService } from '../storage/storage.module';
 
 @Injectable()
 export class InventoryService {
   constructor(
     @Inject(DatabaseService) private readonly database: DatabaseService,
     @Inject(FinanceService) private readonly financeService: FinanceService,
+    @Inject(StorageService) private readonly storage: StorageService,
   ) {}
 
-  async listProducts(organizationId: string, q?: string) {
+  async listProducts(
+    organizationId: string,
+    q?: string,
+    includeInactive = false,
+  ) {
     const term = q?.trim();
-    const rows = await this.database.withTenant(organizationId, (tx) => {
-      if (!term) {
-        return tx
-          .select()
-          .from(products)
-          .orderBy(desc(products.createdAt))
-          .limit(100);
-      }
-      return tx
-        .select()
-        .from(products)
-        .where(
-          or(
-            ilike(products.name, `%${term}%`),
-            ilike(products.sku, `%${term}%`),
-            ilike(products.barcode, `%${term}%`),
-          ),
-        )
-        .orderBy(desc(products.createdAt))
-        .limit(50);
-    });
+    const { rows, links } = await this.database.withTenant(
+      organizationId,
+      async (tx) => {
+        const activeFilter = includeInactive
+          ? undefined
+          : eq(products.isActive, true);
 
-    return rows.map((p) => ({
-      ...p,
-      alertLevel: checkStockAlert(p.stockQty, p.minStockQty),
-    }));
+        const productRows = !term
+          ? await tx
+              .select()
+              .from(products)
+              .where(activeFilter)
+              .orderBy(desc(products.createdAt))
+              .limit(150)
+          : await tx
+              .select()
+              .from(products)
+              .where(
+                and(
+                  activeFilter,
+                  or(
+                    ilike(products.name, `%${term}%`),
+                    ilike(products.sku, `%${term}%`),
+                    ilike(products.barcode, `%${term}%`),
+                    ilike(products.category, `%${term}%`),
+                    ilike(products.brand, `%${term}%`),
+                  ),
+                ),
+              )
+              .orderBy(desc(products.createdAt))
+              .limit(80);
+
+        const prodIds = productRows.map((p) => p.id);
+        const supplierLinks =
+          prodIds.length > 0
+            ? await tx
+                .select({
+                  id: productSuppliers.id,
+                  productId: productSuppliers.productId,
+                  supplierId: productSuppliers.supplierId,
+                  supplierName: suppliers.name,
+                  supplierSku: productSuppliers.supplierSku,
+                  lastCostCents: productSuppliers.lastCostCents,
+                  supplierUrl: productSuppliers.supplierUrl,
+                  notes: productSuppliers.notes,
+                  isPreferred: productSuppliers.isPreferred,
+                })
+                .from(productSuppliers)
+                .innerJoin(suppliers, eq(productSuppliers.supplierId, suppliers.id))
+                .where(inArray(productSuppliers.productId, prodIds))
+            : [];
+
+        return { rows: productRows, links: supplierLinks };
+      },
+    );
+
+    const enriched = await Promise.all(
+      rows.map(async (p) => {
+        let imageUrl: string | null = null;
+        if (p.imageStorageKey) {
+          imageUrl = await this.storage
+            .getSignedDownloadUrl(p.imageStorageKey, 3600)
+            .catch(() => null);
+        }
+        const prodLinks = links.filter((l) => l.productId === p.id);
+        const preferred =
+          prodLinks.find((l) => l.supplierId === p.preferredSupplierId) ??
+          prodLinks.find((l) => l.isPreferred) ??
+          null;
+
+        return {
+          ...p,
+          imageUrl,
+          alertLevel: checkStockAlert(p.stockQty, p.minStockQty),
+          preferredSupplierName: preferred?.supplierName ?? null,
+          suppliers: prodLinks,
+        };
+      }),
+    );
+
+    return enriched;
   }
 
   async createProduct(
@@ -78,7 +144,7 @@ export class InventoryService {
       const existing = await tx
         .select({ id: products.id })
         .from(products)
-        .where(eq(products.sku, input.sku.trim()))
+        .where(eq(products.sku, input.sku.trim().toUpperCase()))
         .limit(1);
 
       if (existing.length > 0) {
@@ -92,11 +158,16 @@ export class InventoryService {
           sku: input.sku.trim().toUpperCase(),
           barcode: input.barcode?.trim() || null,
           name: input.name.trim(),
+          description: input.description?.trim() || null,
           category: input.category.trim(),
           brand: input.brand?.trim() || null,
           unit: input.unit.trim(),
           costCents: input.costCents,
           priceCents: input.priceCents,
+          wholesalePriceCents: input.wholesalePriceCents ?? null,
+          vipPriceCents: input.vipPriceCents ?? null,
+          warrantyDays: input.warrantyDays ?? 90,
+          preferredSupplierId: input.preferredSupplierId ?? null,
           stockQty: input.stockQty,
           minStockQty: input.minStockQty,
           ncm: input.ncm?.trim() || null,
@@ -104,6 +175,20 @@ export class InventoryService {
           csosnDefault: input.csosnDefault,
         })
         .returning();
+
+      if (input.preferredSupplierId) {
+        await tx
+          .insert(productSuppliers)
+          .values({
+            organizationId,
+            productId: prod!.id,
+            supplierId: input.preferredSupplierId,
+            supplierSku: input.supplierSku?.trim() || null,
+            lastCostCents: input.costCents,
+            isPreferred: true,
+          })
+          .onConflictDoNothing();
+      }
 
       if (input.stockQty > 0) {
         await tx.insert(inventoryMovements).values({
@@ -130,8 +215,317 @@ export class InventoryService {
 
       return {
         ...prod!,
+        imageUrl: null,
+        suppliers: [],
         alertLevel: checkStockAlert(prod!.stockQty, prod!.minStockQty),
       };
+    });
+  }
+
+  async updateProduct(
+    organizationId: string,
+    productId: string,
+    userId: string,
+    input: UpdateProductInput,
+  ) {
+    return this.database.withTenant(organizationId, async (tx) => {
+      const [existing] = await tx
+        .select()
+        .from(products)
+        .where(eq(products.id, productId))
+        .limit(1);
+
+      if (!existing) {
+        throw new NotFoundException('Produto não encontrado.');
+      }
+
+      const nextSku = input.sku ? input.sku.trim().toUpperCase() : existing.sku;
+      if (nextSku !== existing.sku) {
+        const dup = await tx
+          .select({ id: products.id })
+          .from(products)
+          .where(eq(products.sku, nextSku))
+          .limit(1);
+        if (dup.length > 0) {
+          throw new ConflictException(`SKU "${nextSku}" já está em uso.`);
+        }
+      }
+
+      const [updated] = await tx
+        .update(products)
+        .set({
+          sku: nextSku,
+          barcode:
+            input.barcode !== undefined
+              ? input.barcode?.trim() || null
+              : existing.barcode,
+          name: input.name !== undefined ? input.name.trim() : existing.name,
+          description:
+            input.description !== undefined
+              ? input.description?.trim() || null
+              : existing.description,
+          category:
+            input.category !== undefined ? input.category.trim() : existing.category,
+          brand:
+            input.brand !== undefined ? input.brand?.trim() || null : existing.brand,
+          unit: input.unit !== undefined ? input.unit.trim() : existing.unit,
+          costCents:
+            input.costCents !== undefined ? input.costCents : existing.costCents,
+          priceCents:
+            input.priceCents !== undefined ? input.priceCents : existing.priceCents,
+          wholesalePriceCents:
+            input.wholesalePriceCents !== undefined
+              ? input.wholesalePriceCents
+              : existing.wholesalePriceCents,
+          vipPriceCents:
+            input.vipPriceCents !== undefined
+              ? input.vipPriceCents
+              : existing.vipPriceCents,
+          warrantyDays:
+            input.warrantyDays !== undefined
+              ? input.warrantyDays
+              : existing.warrantyDays,
+          preferredSupplierId:
+            input.preferredSupplierId !== undefined
+              ? input.preferredSupplierId
+              : existing.preferredSupplierId,
+          minStockQty:
+            input.minStockQty !== undefined
+              ? input.minStockQty
+              : existing.minStockQty,
+          ncm: input.ncm !== undefined ? input.ncm?.trim() || null : existing.ncm,
+          cfopDefault:
+            input.cfopDefault !== undefined
+              ? input.cfopDefault
+              : existing.cfopDefault,
+          csosnDefault:
+            input.csosnDefault !== undefined
+              ? input.csosnDefault
+              : existing.csosnDefault,
+          isActive:
+            input.isActive !== undefined ? input.isActive : existing.isActive,
+          updatedAt: new Date(),
+        })
+        .where(eq(products.id, productId))
+        .returning();
+
+      if (input.preferredSupplierId) {
+        await tx
+          .insert(productSuppliers)
+          .values({
+            organizationId,
+            productId,
+            supplierId: input.preferredSupplierId,
+            supplierSku: input.supplierSku?.trim() || null,
+            lastCostCents: updated!.costCents,
+            isPreferred: true,
+          })
+          .onConflictDoUpdate({
+            target: [productSuppliers.productId, productSuppliers.supplierId],
+            set: {
+              isPreferred: true,
+              lastCostCents: updated!.costCents,
+            },
+          });
+      }
+
+      await tx.insert(auditLogs).values({
+        organizationId,
+        actorType: 'human',
+        actorId: userId,
+        action: 'product.updated',
+        entityType: 'product',
+        entityId: productId,
+        beforeState: { name: existing.name, priceCents: existing.priceCents },
+        afterState: { name: updated!.name, priceCents: updated!.priceCents },
+      });
+
+      return {
+        ...updated!,
+        alertLevel: checkStockAlert(updated!.stockQty, updated!.minStockQty),
+      };
+    });
+  }
+
+  async deleteProduct(organizationId: string, productId: string, userId: string) {
+    return this.database.withTenant(organizationId, async (tx) => {
+      const [existing] = await tx
+        .select()
+        .from(products)
+        .where(eq(products.id, productId))
+        .limit(1);
+
+      if (!existing) {
+        throw new NotFoundException('Produto não encontrado.');
+      }
+
+      const [updated] = await tx
+        .update(products)
+        .set({ isActive: false, updatedAt: new Date() })
+        .where(eq(products.id, productId))
+        .returning();
+
+      await tx.insert(auditLogs).values({
+        organizationId,
+        actorType: 'human',
+        actorId: userId,
+        action: 'product.archived',
+        entityType: 'product',
+        entityId: productId,
+      });
+
+      return updated!;
+    });
+  }
+
+  async uploadProductImage(params: {
+    organizationId: string;
+    productId: string;
+    userId: string;
+    filename: string;
+    mimeType: string;
+    buffer: Buffer;
+  }) {
+    const safeName = params.filename.replace(/[^a-zA-Z0-9._-]/g, '_');
+    const storageKey = `tenants/${params.organizationId}/products/${params.productId}/${Date.now()}-${safeName}`;
+
+    await this.storage.uploadObject({
+      key: storageKey,
+      body: params.buffer,
+      contentType: params.mimeType,
+    });
+
+    const updated = await this.database.withTenant(
+      params.organizationId,
+      async (tx) => {
+        const [prod] = await tx
+          .update(products)
+          .set({ imageStorageKey: storageKey, updatedAt: new Date() })
+          .where(eq(products.id, params.productId))
+          .returning();
+
+        if (!prod) {
+          throw new NotFoundException('Produto não encontrado.');
+        }
+
+        await tx.insert(auditLogs).values({
+          organizationId: params.organizationId,
+          actorType: 'human',
+          actorId: params.userId,
+          action: 'product.image_uploaded',
+          entityType: 'product',
+          entityId: params.productId,
+          afterState: { storageKey },
+        });
+
+        return prod;
+      },
+    );
+
+    const imageUrl = await this.storage
+      .getSignedDownloadUrl(storageKey, 3600)
+      .catch(() => null);
+
+    return { ...updated, imageUrl };
+  }
+
+  async getProductMovements(organizationId: string, productId: string) {
+    return this.database.withTenant(organizationId, (tx) =>
+      tx
+        .select()
+        .from(inventoryMovements)
+        .where(eq(inventoryMovements.productId, productId))
+        .orderBy(desc(inventoryMovements.createdAt))
+        .limit(50),
+    );
+  }
+
+  async linkProductSupplier(
+    organizationId: string,
+    productId: string,
+    input: LinkProductSupplierInput,
+  ) {
+    return this.database.withTenant(organizationId, async (tx) => {
+      const [prod] = await tx
+        .select({ id: products.id })
+        .from(products)
+        .where(eq(products.id, productId))
+        .limit(1);
+      if (!prod) throw new NotFoundException('Produto não encontrado.');
+
+      const [sup] = await tx
+        .select({ id: suppliers.id })
+        .from(suppliers)
+        .where(eq(suppliers.id, input.supplierId))
+        .limit(1);
+      if (!sup) throw new NotFoundException('Fornecedor não encontrado.');
+
+      if (input.isPreferred) {
+        await tx
+          .update(productSuppliers)
+          .set({ isPreferred: false })
+          .where(eq(productSuppliers.productId, productId));
+
+        await tx
+          .update(products)
+          .set({ preferredSupplierId: input.supplierId, updatedAt: new Date() })
+          .where(eq(products.id, productId));
+      }
+
+      const [link] = await tx
+        .insert(productSuppliers)
+        .values({
+          organizationId,
+          productId,
+          supplierId: input.supplierId,
+          supplierSku: input.supplierSku?.trim() || null,
+          lastCostCents: input.lastCostCents,
+          supplierUrl: input.supplierUrl?.trim() || null,
+          notes: input.notes?.trim() || null,
+          isPreferred: input.isPreferred,
+        })
+        .onConflictDoUpdate({
+          target: [productSuppliers.productId, productSuppliers.supplierId],
+          set: {
+            supplierSku: input.supplierSku?.trim() || null,
+            lastCostCents: input.lastCostCents,
+            supplierUrl: input.supplierUrl?.trim() || null,
+            notes: input.notes?.trim() || null,
+            isPreferred: input.isPreferred,
+          },
+        })
+        .returning();
+
+      return link!;
+    });
+  }
+
+  async unlinkProductSupplier(
+    organizationId: string,
+    productId: string,
+    supplierId: string,
+  ) {
+    return this.database.withTenant(organizationId, async (tx) => {
+      await tx
+        .delete(productSuppliers)
+        .where(
+          and(
+            eq(productSuppliers.productId, productId),
+            eq(productSuppliers.supplierId, supplierId),
+          ),
+        );
+
+      await tx
+        .update(products)
+        .set({ preferredSupplierId: null, updatedAt: new Date() })
+        .where(
+          and(
+            eq(products.id, productId),
+            eq(products.preferredSupplierId, supplierId),
+          ),
+        );
+
+      return { removed: true };
     });
   }
 
@@ -244,9 +638,13 @@ export class InventoryService {
     });
   }
 
-  async listSuppliers(organizationId: string) {
+  async listSuppliers(organizationId: string, includeInactive = false) {
     return this.database.withTenant(organizationId, (tx) =>
-      tx.select().from(suppliers).orderBy(desc(suppliers.createdAt)),
+      tx
+        .select()
+        .from(suppliers)
+        .where(includeInactive ? undefined : eq(suppliers.isActive, true))
+        .orderBy(desc(suppliers.createdAt)),
     );
   }
 
@@ -261,9 +659,89 @@ export class InventoryService {
           email: input.email ? input.email.trim().toLowerCase() : null,
           phone: input.phone?.trim() || null,
           leadTimeDays: input.leadTimeDays,
+          websiteUrl: input.websiteUrl?.trim() || null,
+          paymentTerms: input.paymentTerms?.trim() || null,
+          acceptsMei: input.acceptsMei ?? true,
+          notes: input.notes?.trim() || null,
         })
         .returning();
       return sup!;
+    });
+  }
+
+  async updateSupplier(
+    organizationId: string,
+    supplierId: string,
+    input: UpdateSupplierInput,
+  ) {
+    return this.database.withTenant(organizationId, async (tx) => {
+      const [existing] = await tx
+        .select()
+        .from(suppliers)
+        .where(eq(suppliers.id, supplierId))
+        .limit(1);
+      if (!existing) throw new NotFoundException('Fornecedor não encontrado.');
+
+      const [updated] = await tx
+        .update(suppliers)
+        .set({
+          name: input.name !== undefined ? input.name.trim() : existing.name,
+          cnpj:
+            input.cnpj !== undefined ? input.cnpj?.trim() || null : existing.cnpj,
+          email:
+            input.email !== undefined
+              ? input.email
+                ? input.email.trim().toLowerCase()
+                : null
+              : existing.email,
+          phone:
+            input.phone !== undefined
+              ? input.phone?.trim() || null
+              : existing.phone,
+          leadTimeDays:
+            input.leadTimeDays !== undefined
+              ? input.leadTimeDays
+              : existing.leadTimeDays,
+          websiteUrl:
+            input.websiteUrl !== undefined
+              ? input.websiteUrl?.trim() || null
+              : existing.websiteUrl,
+          paymentTerms:
+            input.paymentTerms !== undefined
+              ? input.paymentTerms?.trim() || null
+              : existing.paymentTerms,
+          acceptsMei:
+            input.acceptsMei !== undefined ? input.acceptsMei : existing.acceptsMei,
+          notes:
+            input.notes !== undefined
+              ? input.notes?.trim() || null
+              : existing.notes,
+          isActive:
+            input.isActive !== undefined ? input.isActive : existing.isActive,
+        })
+        .where(eq(suppliers.id, supplierId))
+        .returning();
+
+      return updated!;
+    });
+  }
+
+  async deleteSupplier(organizationId: string, supplierId: string) {
+    return this.database.withTenant(organizationId, async (tx) => {
+      const [existing] = await tx
+        .select()
+        .from(suppliers)
+        .where(eq(suppliers.id, supplierId))
+        .limit(1);
+      if (!existing) throw new NotFoundException('Fornecedor não encontrado.');
+
+      const [updated] = await tx
+        .update(suppliers)
+        .set({ isActive: false })
+        .where(eq(suppliers.id, supplierId))
+        .returning();
+
+      return updated!;
     });
   }
 

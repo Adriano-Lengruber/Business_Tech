@@ -21,6 +21,9 @@ import {
   quoteItems,
   suppliers,
   products,
+  productSuppliers,
+  purchaseOrders,
+  purchaseOrderItems,
   fiscalProfiles,
   filaments,
   print3dJobs,
@@ -1161,6 +1164,400 @@ async function seed() {
           estimatedHours: 1,
         },
       ]);
+    }
+
+    // Seed Fase 12: Enriquecimento de Fornecedores MEI, Produtos Ricos (Tabelas + Vínculos), Clientes PF/PJ, Compras e Despesas
+    const allSuppliersBefore = await db
+      .select()
+      .from(suppliers)
+      .where(eq(suppliers.organizationId, orgId));
+
+    const meiSuppliersSeed = [
+      {
+        name: 'Agis Distribuição (Hardware B2B)',
+        cnpj: '47.521.119/0001-32',
+        email: 'comercial@agis.com.br',
+        phone: '+551937412200',
+        leadTimeDays: 3,
+        websiteUrl: 'https://www.agis.com.br',
+        paymentTerms: 'PIX / Boleto faturado 28d',
+        acceptsMei: true,
+        notes: 'Aceita MEI para SSDs, memórias, fontes e notebooks. Cotar antes de fechar marketplace PF.',
+      },
+      {
+        name: 'bringIT Peças Notebook & Telas',
+        cnpj: '13.841.997/0001-48',
+        email: 'revenda@bringit.com.br',
+        phone: '+554130498800',
+        leadTimeDays: 2,
+        websiteUrl: 'https://www.bringit.com.br',
+        paymentTerms: 'PIX / Cartão / Boleto MEI',
+        acceptsMei: true,
+        notes: 'Especialista em telas LED/IPS, baterias, teclados e fontes originais de notebook.',
+      },
+      {
+        name: 'Fujioka Distribuidor Tecnologia',
+        cnpj: '01.008.842/0001-20',
+        email: 'b2b@fujioka.com.br',
+        phone: '+556232395000',
+        leadTimeDays: 4,
+        websiteUrl: 'https://www.fujiokadistribuidor.com.br',
+        paymentTerms: 'PIX à vista ou Cartão 6x',
+        acceptsMei: true,
+        notes: 'Excelente preço para monitores, periféricos e PCs montados sob encomenda.',
+      },
+      {
+        name: '3DLab Filamentos & Resinas',
+        cnpj: '29.402.118/0001-05',
+        email: 'vendas@3dlab.com.br',
+        phone: '+553133902211',
+        leadTimeDays: 2,
+        websiteUrl: 'https://www.3dlab.com.br',
+        paymentTerms: 'PIX 5% desc. / Cartão',
+        acceptsMei: true,
+        notes: 'Filamentos PLA Silk, PETG técnico e bicos hardened com desconto progressivo.',
+      },
+    ];
+
+    for (const sSeed of meiSuppliersSeed) {
+      if (!allSuppliersBefore.some((s) => s.name === sSeed.name)) {
+        await db.insert(suppliers).values({
+          organizationId: orgId,
+          ...sSeed,
+        });
+      }
+    }
+
+    const supRowsAfter = await db
+      .select()
+      .from(suppliers)
+      .where(eq(suppliers.organizationId, orgId));
+    const supAgis =
+      supRowsAfter.find((s) => s.name.includes('Agis')) ?? supRowsAfter[0];
+    const supBringIt =
+      supRowsAfter.find((s) => s.name.includes('bringIT')) ?? supRowsAfter[0];
+    const sup3d =
+      supRowsAfter.find((s) => s.name.includes('3DLab')) ?? supRowsAfter[0];
+
+    // Atualizar TechBR antigo se existir sem notas/URL
+    if (supRowsAfter[0] && !supRowsAfter[0].notes) {
+      await db
+        .update(suppliers)
+        .set({
+          websiteUrl: 'https://b2b.techbr.exemplo.com',
+          paymentTerms: 'PIX / Boleto 21d CNPJ',
+          acceptsMei: true,
+          notes: 'Distribuidor parceiro para cabos, pasta térmica e insumos gerais de bancada.',
+        })
+        .where(eq(suppliers.id, supRowsAfter[0].id));
+    }
+
+    // Enriquecer produtos existentes e criar novos SKUs completos
+    const richExtraProducts = [
+      {
+        sku: 'SSD-NVME-1TB',
+        barcode: '7890001000059',
+        name: 'SSD NVMe 1TB PCIe 4.0 M.2 2280 Kingston NV3',
+        description:
+          'Unidade NVMe Gen4 x4 leitura até 6000 MB/s. Ideal para notebooks e estações de trabalho com slot M.2 2280.',
+        category: 'armazenamento',
+        brand: 'Kingston',
+        unit: 'UN',
+        costCents: 31500,
+        priceCents: 52900,
+        wholesalePriceCents: 46900,
+        vipPriceCents: 44900,
+        warrantyDays: 365,
+        preferredSupplierId: supAgis?.id ?? null,
+        stockQty: 6,
+        minStockQty: 2,
+        ncm: '84717040',
+      },
+      {
+        sku: 'TELA-156-FHD-EDP',
+        barcode: '7890001000066',
+        name: 'Tela 15.6" LED IPS Full HD 30 Pinos eDP Fosca',
+        description:
+          'Painel IPS antirreflexo 1920x1080 Slim sem abas (NanoEdge). Compatível com Dell Inspiron 15, Lenovo Ideapad e Acer Aspire.',
+        category: 'telas',
+        brand: 'BOE / AUO',
+        unit: 'UN',
+        costCents: 29500,
+        priceCents: 49900,
+        wholesalePriceCents: 43900,
+        vipPriceCents: 41900,
+        warrantyDays: 90,
+        preferredSupplierId: supBringIt?.id ?? null,
+        stockQty: 2,
+        minStockQty: 2,
+        ncm: '85249100',
+      },
+      {
+        sku: 'BAT-DELL-INSP15',
+        barcode: '7890001000073',
+        name: 'Bateria Dell Inspiron 15 3520 / Vostro 3520 (41Wh 3 Células)',
+        description:
+          'Bateria compatível padrão OEM 11.25V 41Wh com proteção contra sobrecarga e 6 meses de garantia balcão.',
+        category: 'baterias',
+        brand: 'bringIT OEM',
+        unit: 'UN',
+        costCents: 17500,
+        priceCents: 32900,
+        wholesalePriceCents: 28900,
+        vipPriceCents: 27900,
+        warrantyDays: 180,
+        preferredSupplierId: supBringIt?.id ?? null,
+        stockQty: 1,
+        minStockQty: 2,
+        ncm: '85076000',
+      },
+      {
+        sku: 'FONTE-GAN-65W',
+        barcode: '7890001000080',
+        name: 'Carregador GaN 65W USB-C Power Delivery Compacto',
+        description:
+          'Fonte inteligente GaN bivolt com 2 portas USB-C PD + 1 USB-A QC3.0. Compatível com MacBook, ThinkPad, Dell Latitude e smartphones.',
+        category: 'acessorios',
+        brand: 'Ugreen',
+        unit: 'UN',
+        costCents: 8900,
+        priceCents: 18900,
+        wholesalePriceCents: 15900,
+        vipPriceCents: 14900,
+        warrantyDays: 180,
+        preferredSupplierId: supAgis?.id ?? null,
+        stockQty: 9,
+        minStockQty: 3,
+        ncm: '85044021',
+      },
+      {
+        sku: 'FIL-PLA-PRETO-1KG',
+        barcode: '7890001000097',
+        name: 'Filamento PLA Técnico Preto Profissional 1.75mm (1kg)',
+        description:
+          'Carretel selado a vácuo com tolerância ±0.02mm para peças funcionais, suportes de notebook e protótipos.',
+        category: 'impressao-3d',
+        brand: '3DLab',
+        unit: 'RL',
+        costCents: 8400,
+        priceCents: 14900,
+        wholesalePriceCents: 12900,
+        vipPriceCents: 12500,
+        warrantyDays: 90,
+        preferredSupplierId: sup3d?.id ?? null,
+        stockQty: 7,
+        minStockQty: 3,
+        ncm: '39169090',
+      },
+    ];
+
+    const existingProdList = await db
+      .select()
+      .from(products)
+      .where(eq(products.organizationId, orgId));
+
+    // Preencher descrição e tabelas nos 4 produtos iniciais
+    for (const p of existingProdList) {
+      if (!p.description || !p.vipPriceCents) {
+        await db
+          .update(products)
+          .set({
+            description:
+              p.description ??
+              `${p.name} (${p.brand ?? 'Original'}) com conferência de qualidade em bancada e garantia balcão.`,
+            wholesalePriceCents:
+              p.wholesalePriceCents ?? Math.round(p.priceCents * 0.88),
+            vipPriceCents: p.vipPriceCents ?? Math.round(p.priceCents * 0.85),
+            preferredSupplierId: p.preferredSupplierId ?? supAgis?.id ?? null,
+          })
+          .where(eq(products.id, p.id));
+      }
+    }
+
+    for (const np of richExtraProducts) {
+      if (!existingProdList.some((p) => p.sku === np.sku)) {
+        const [insertedProd] = await db
+          .insert(products)
+          .values({
+            organizationId: orgId,
+            ...np,
+          })
+          .returning();
+
+        if (insertedProd && np.preferredSupplierId) {
+          await db
+            .insert(productSuppliers)
+            .values({
+              organizationId: orgId,
+              productId: insertedProd.id,
+              supplierId: np.preferredSupplierId,
+              supplierSku: `FORN-${np.sku}`,
+              lastCostCents: np.costCents,
+              isPreferred: true,
+              notes: 'Fornecedor principal cadastrado via guia MEI.',
+            })
+            .onConflictDoNothing();
+        }
+      }
+    }
+
+    // Seed adicional de Clientes PF/PJ e Ativos VIP
+    const curCustomers = await db
+      .select()
+      .from(customers)
+      .where(eq(customers.organizationId, orgId));
+
+    const extraCustomersSeed = [
+      {
+        type: 'PJ',
+        name: 'Clínica Odonto Sorriso Ltda',
+        phoneE164: '+5511988112233',
+        email: 'ti@odontosorriso.com.br',
+        tags: ['pj', 'contrato-mensal'],
+        aiSegment: 'VIP_B2B',
+      },
+      {
+        type: 'PF',
+        name: 'Marina Costa Arquitetura',
+        phoneE164: '+5511977223344',
+        email: 'marina@costaarq.com',
+        tags: ['render-3d', 'workstation'],
+        aiSegment: 'RECURRING',
+      },
+      {
+        type: 'PF',
+        name: 'Lucas Ferreira (Setup Gamer)',
+        phoneE164: '+5511966334455',
+        email: 'lucas.ferreira@exemplo.com',
+        tags: ['pc-gamer', 'vip-loja'],
+        aiSegment: 'VIP_STORE',
+      },
+      {
+        type: 'PJ',
+        name: 'Escola Criativa Saber ME',
+        phoneE164: '+5511955445566',
+        email: 'secretaria@escolasaber.edu.br',
+        tags: ['pj', 'impressao-3d', 'manutencao'],
+        aiSegment: 'NEW',
+      },
+    ];
+
+    for (const cSeed of extraCustomersSeed) {
+      if (!curCustomers.some((c) => c.phoneE164 === cSeed.phoneE164)) {
+        const [newCust] = await db
+          .insert(customers)
+          .values({
+            organizationId: orgId,
+            ...cSeed,
+            lgpdConsentAt: new Date(),
+          })
+          .returning();
+
+        if (newCust) {
+          await db.insert(assets).values({
+            organizationId: orgId,
+            customerId: newCust.id,
+            category: cSeed.type === 'PJ' ? 'desktop' : 'notebook',
+            brand: cSeed.name.includes('Lucas') ? 'Custom Ryzen' : 'Lenovo',
+            model: cSeed.name.includes('Lucas')
+              ? 'Workstation R7 7700X + RTX 4070'
+              : 'ThinkPad E14 Gen 5',
+            serialNumber: `SN-${Math.floor(100000 + Math.random() * 899999)}`,
+            qrToken: `qr-al-${newCust.id.slice(0, 8)}`,
+            acquiredFromStore: cSeed.name.includes('Lucas'),
+            vipDiscountPct: cSeed.name.includes('Lucas') ? 20 : 0,
+            storeSaleRef: cSeed.name.includes('Lucas') ? 'NF-AL-0088' : null,
+          });
+        }
+      }
+    }
+
+    // Garantir ao menos 2 Pedidos de Compra no histórico
+    const existingPos = await db
+      .select({ code: purchaseOrders.code })
+      .from(purchaseOrders)
+      .where(eq(purchaseOrders.organizationId, orgId));
+
+    const prodCatalogAfter = await db
+      .select()
+      .from(products)
+      .where(eq(products.organizationId, orgId));
+    const prodNvme = prodCatalogAfter.find((p) => p.sku === 'SSD-NVME-1TB') ?? prodCatalogAfter[0];
+    const prodTela = prodCatalogAfter.find((p) => p.sku === 'TELA-156-FHD-EDP') ?? prodCatalogAfter[0];
+
+    if (existingPos.length === 0 && supAgis && supBringIt && prodNvme && prodTela) {
+      const [po1] = await db
+        .insert(purchaseOrders)
+        .values({
+          organizationId: orgId,
+          supplierId: supAgis.id,
+          code: 'PO-2026-0001',
+          status: 'RECEIVED',
+          totalCostCents: prodNvme.costCents * 4,
+          notes: 'Reposição mensal SSDs NVMe para upgrades e balcão.',
+          receivedAt: new Date(Date.now() - 3 * 86400000),
+        })
+        .returning();
+
+      if (po1) {
+        await db.insert(purchaseOrderItems).values({
+          organizationId: orgId,
+          purchaseOrderId: po1.id,
+          productId: prodNvme.id,
+          quantity: 4,
+          unitCostCents: prodNvme.costCents,
+        });
+      }
+
+      const [po2] = await db
+        .insert(purchaseOrders)
+        .values({
+          organizationId: orgId,
+          supplierId: supBringIt.id,
+          code: 'PO-2026-0002',
+          status: 'ORDERED',
+          totalCostCents: prodTela.costCents * 2,
+          linkedServiceOrderId: demoOs?.id ?? null,
+          expectedArrivalAt: new Date(Date.now() + 2 * 86400000),
+          notes: 'Telas 15.6 IPS para reposição e reserva técnica.',
+        })
+        .returning();
+
+      if (po2) {
+        await db.insert(purchaseOrderItems).values({
+          organizationId: orgId,
+          purchaseOrderId: po2.id,
+          productId: prodTela.id,
+          quantity: 2,
+          unitCostCents: prodTela.costCents,
+        });
+      }
+    }
+
+    // Garantir despesa pendente recente para ilustrar Previsto vs Realizado no Dashboard
+    const existingPendingPayable = await db
+      .select({ id: financialTransactions.id })
+      .from(financialTransactions)
+      .where(
+        and(
+          eq(financialTransactions.organizationId, orgId),
+          eq(financialTransactions.type, 'payable'),
+          eq(financialTransactions.status, 'PENDING'),
+        ),
+      )
+      .limit(1);
+
+    if (existingPendingPayable.length === 0) {
+      await db.insert(financialTransactions).values({
+        organizationId: orgId,
+        type: 'payable',
+        status: 'PENDING',
+        category: 'Peças & Estoque',
+        description: 'Pedido PO-2026-0002 bringIT (2x Telas 15.6 IPS)',
+        amountCents: 59000,
+        paymentMethod: 'boleto',
+        dueDate: new Date(),
+      });
     }
 
     console.log('[seed] Seed concluído com sucesso para AL Tech & Soluções.');
