@@ -5,6 +5,7 @@ import {
   Get,
   Inject,
   Post,
+  Query,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import {
@@ -34,9 +35,15 @@ export class KnowledgeController {
 
   @Get('briefing')
   @RequirePermission('ai:use_copilot')
-  @ApiOperation({ summary: 'Daily AI Briefing Executivo com dados reais e links' })
-  getBriefing(@CurrentUser() user: AuthenticatedUser) {
-    return this.knowledgeService.getDailyBriefing(user.organizationId);
+  @ApiOperation({ summary: 'Daily AI Briefing Executivo instantâneo com dados reais e links' })
+  getBriefing(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query('refreshAi') refreshAi?: string,
+  ) {
+    return this.knowledgeService.getDailyBriefing(
+      user.organizationId,
+      refreshAi === 'true',
+    );
   }
 
   @Post('copilot/ask')

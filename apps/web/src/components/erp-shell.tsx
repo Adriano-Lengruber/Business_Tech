@@ -16,6 +16,7 @@ import {
   Package,
   PlusCircle,
   Printer,
+  ShieldCheck,
   ShoppingCart,
   Wrench,
 } from 'lucide-react';
@@ -34,6 +35,14 @@ export interface ErpSession {
     role: string;
   };
   enabledModules: ModuleCode[];
+}
+
+interface NavItem {
+  href: string;
+  label: string;
+  icon: typeof LayoutDashboard;
+  group: 'Operação' | 'Comercial & Fiscal' | 'Verticais & IA' | 'Sistema';
+  show: boolean;
 }
 
 export function ErpShell({
@@ -82,145 +91,191 @@ export function ErpShell({
 
   if (loading || !session) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-bg text-sm text-text-secondary">
-        Carregando workspace multi-tenant...
+      <div className="flex min-h-screen flex-col items-center justify-center gap-3 bg-bg text-sm text-text-secondary">
+        <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent/15 font-mono text-sm font-bold text-accent animate-pulse">
+          AL
+        </span>
+        <span>Carregando workspace multi-tenant...</span>
       </div>
     );
   }
 
-  const navItems = [
-    { href: '/app', label: 'Minha Fila de Hoje', icon: LayoutDashboard, show: true },
+  const rawNavItems: NavItem[] = [
+    {
+      href: '/app',
+      label: 'Visão Geral & BI',
+      icon: LayoutDashboard,
+      group: 'Operação',
+      show: true,
+    },
     {
       href: '/app/os/new',
       label: 'Balcão — Nova OS',
       icon: PlusCircle,
+      group: 'Operação',
       show: session.enabledModules.includes('mod-service-orders'),
     },
     {
       href: '/app/inbox',
-      label: 'Inbox WhatsApp & IA',
+      label: 'Inbox WhatsApp',
       icon: MessageSquare,
+      group: 'Operação',
       show: true,
     },
     {
       href: '/app/inventory',
-      label: 'Estoque & Compras',
+      label: 'Estoque & Peças',
       icon: Package,
+      group: 'Comercial & Fiscal',
       show: session.enabledModules.includes('mod-inventory-pos'),
     },
     {
       href: '/app/pos',
-      label: 'PDV (Vendas)',
+      label: 'PDV Balcão',
       icon: ShoppingCart,
+      group: 'Comercial & Fiscal',
       show: session.enabledModules.includes('mod-inventory-pos'),
     },
     {
       href: '/app/finance',
       label: 'Financeiro & PIX',
       icon: DollarSign,
+      group: 'Comercial & Fiscal',
       show: session.enabledModules.includes('mod-finance-fiscal'),
     },
     {
       href: '/app/fiscal',
-      label: 'Notas Fiscais (SEFAZ)',
+      label: 'Notas Fiscais',
       icon: FileCheck2,
+      group: 'Comercial & Fiscal',
       show: session.enabledModules.includes('mod-finance-fiscal'),
     },
     {
       href: '/app/print3d',
       label: 'Impressão 3D',
       icon: Printer,
+      group: 'Verticais & IA',
       show: session.enabledModules.includes('mod-3d-print'),
     },
     {
       href: '/app/projects',
-      label: 'Projetos & Software',
+      label: 'Projetos & Dev',
       icon: Code2,
+      group: 'Verticais & IA',
       show: session.enabledModules.includes('mod-projects-dev'),
     },
     {
       href: '/app/social',
-      label: 'Social & Growth IA',
+      label: 'Social & Leads',
       icon: Megaphone,
+      group: 'Verticais & IA',
       show: session.enabledModules.includes('mod-social-growth'),
     },
     {
       href: '/app/knowledge',
-      label: 'IA & Base RAG',
+      label: 'Base RAG & IA',
       icon: BookOpen,
+      group: 'Verticais & IA',
       show: session.enabledModules.includes('mod-ai-agents'),
     },
     {
       href: '/app/modules',
       label: 'Módulos SaaS',
       icon: Boxes,
+      group: 'Sistema',
       show: true,
     },
-  ].filter((item) => item.show);
+  ];
+  const navItems = rawNavItems.filter((item) => item.show);
+
+  const groups: Array<NavItem['group']> = [
+    'Operação',
+    'Comercial & Fiscal',
+    'Verticais & IA',
+    'Sistema',
+  ];
 
   return (
     <div className="flex min-h-screen bg-bg text-text-primary">
-      <aside className="hidden w-64 shrink-0 flex-col border-r border-border bg-surface p-4 md:flex">
-        <div className="flex items-center gap-2.5 px-2 pb-5">
-          <span className="flex h-8 w-8 items-center justify-center rounded-md bg-accent font-mono text-xs font-bold text-accent-foreground">
+      <aside className="hidden w-64 shrink-0 flex-col border-r border-border bg-surface/95 md:flex">
+        <div className="flex items-center gap-3 border-b border-border px-4 py-4">
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-accent font-mono text-xs font-bold text-accent-foreground shadow-sm">
             AL
           </span>
           <div className="min-w-0">
-            <p className="truncate text-sm font-semibold">
+            <p className="truncate font-display text-sm font-semibold">
               {session.user.organizationName}
             </p>
-            <p className="truncate font-mono text-[11px] text-text-muted">
-              {session.user.role.toUpperCase()} · RLS ATIVO
+            <p className="flex items-center gap-1 truncate font-mono text-[10px] text-text-muted">
+              <ShieldCheck className="h-3 w-3 text-success" />
+              {session.user.role.toUpperCase()} · RLS
             </p>
           </div>
         </div>
 
-        <nav className="flex-1 space-y-1">
-          {navItems.map((item) => {
-            const active =
-              item.href === '/app'
-                ? pathname === '/app'
-                : pathname.startsWith(item.href);
-            const Icon = item.icon;
+        <nav className="flex-1 space-y-5 overflow-y-auto px-3 py-4">
+          {groups.map((group) => {
+            const items = navItems.filter((i) => i.group === group);
+            if (items.length === 0) return null;
             return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={`flex items-center gap-2.5 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
-                  active
-                    ? 'bg-accent/15 text-accent'
-                    : 'text-text-secondary hover:bg-surface-muted hover:text-text-primary'
-                }`}
-              >
-                <Icon className="h-4 w-4 shrink-0" />
-                <span className="truncate">{item.label}</span>
-              </Link>
+              <div key={group}>
+                <p className="mb-1.5 px-2.5 text-[10px] font-semibold uppercase tracking-wider text-text-muted">
+                  {group}
+                </p>
+                <div className="space-y-0.5">
+                  {items.map((item) => {
+                    const active =
+                      item.href === '/app'
+                        ? pathname === '/app'
+                        : pathname.startsWith(item.href);
+                    const Icon = item.icon;
+                    return (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        className={`flex items-center gap-2.5 rounded-xl px-3 py-2 text-[13px] font-medium transition-all ${
+                          active
+                            ? 'bg-accent/14 text-accent shadow-[inset_2px_0_0_0_var(--al-accent)]'
+                            : 'text-text-secondary hover:bg-surface-muted/80 hover:text-text-primary'
+                        }`}
+                      >
+                        <Icon className="h-4 w-4 shrink-0" />
+                        <span className="truncate">{item.label}</span>
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
             );
           })}
         </nav>
 
-        <div className="border-t border-border pt-3">
-          <p className="truncate px-2 text-xs font-medium text-text-primary">
-            {session.user.name}
-          </p>
-          <p className="truncate px-2 pb-3 text-[11px] text-text-muted">
-            {session.user.email}
-          </p>
+        <div className="border-t border-border p-3">
+          <div className="mb-2.5 rounded-xl bg-surface-muted/60 px-3 py-2">
+            <p className="truncate text-xs font-medium text-text-primary">
+              {session.user.name}
+            </p>
+            <p className="truncate font-mono text-[11px] text-text-muted">
+              {session.user.email}
+            </p>
+          </div>
           <button
             type="button"
             onClick={handleLogout}
-            className="flex w-full items-center gap-2 rounded-md border border-border px-3 py-2 text-sm text-text-secondary hover:bg-surface-muted hover:text-text-primary"
+            className="flex w-full items-center justify-center gap-2 rounded-xl border border-border px-3 py-2 text-xs font-medium text-text-secondary transition-colors hover:bg-surface-muted hover:text-text-primary"
           >
-            <LogOut className="h-4 w-4" />
-            Sair
+            <LogOut className="h-3.5 w-3.5" />
+            Encerrar sessão
           </button>
         </div>
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex h-16 items-center justify-between gap-4 border-b border-border bg-surface px-4 sm:px-6">
+        <header className="sticky top-0 z-20 flex h-16 items-center justify-between gap-4 border-b border-border bg-surface/90 px-4 backdrop-blur-md sm:px-6">
           <div className="min-w-0">
-            <h1 className="truncate text-base font-semibold">{title}</h1>
+            <h1 className="truncate font-display text-base font-semibold tracking-tight sm:text-lg">
+              {title}
+            </h1>
             {subtitle && (
               <p className="truncate text-xs text-text-secondary">{subtitle}</p>
             )}
@@ -230,10 +285,10 @@ export function ErpShell({
             {session.enabledModules.includes('mod-service-orders') && (
               <Link
                 href="/app/os/new"
-                className="inline-flex items-center gap-1.5 rounded-md bg-accent px-3 py-1.5 text-xs font-semibold text-accent-foreground hover:bg-accent-hover"
+                className="inline-flex items-center gap-1.5 rounded-xl bg-accent px-3.5 py-2 text-xs font-semibold text-accent-foreground shadow-sm transition-colors hover:bg-accent-hover"
               >
                 <Wrench className="h-3.5 w-3.5" />
-                Nova OS
+                <span className="hidden sm:inline">Nova OS</span>
               </Link>
             )}
             <ThemeToggle />
@@ -241,18 +296,28 @@ export function ErpShell({
         </header>
 
         <nav className="flex gap-2 overflow-x-auto border-b border-border bg-surface px-4 py-2 md:hidden">
-          {navItems.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className="shrink-0 rounded-md border border-border px-2.5 py-1 text-xs font-medium text-text-secondary"
-            >
-              {item.label}
-            </Link>
-          ))}
+          {navItems.map((item) => {
+            const active =
+              item.href === '/app'
+                ? pathname === '/app'
+                : pathname.startsWith(item.href);
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`shrink-0 rounded-lg border px-2.5 py-1 text-xs font-medium ${
+                  active
+                    ? 'border-accent bg-accent/15 text-accent'
+                    : 'border-border text-text-secondary'
+                }`}
+              >
+                {item.label}
+              </Link>
+            );
+          })}
         </nav>
 
-        <main className="mx-auto w-full max-w-6xl flex-1 p-4 sm:p-6">
+        <main className="mx-auto w-full max-w-7xl flex-1 p-4 sm:p-6">
           {children(session, loadSession)}
         </main>
       </div>

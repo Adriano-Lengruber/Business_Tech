@@ -29,6 +29,7 @@ import type {
   UpdateServiceOrderStatusInput,
 } from '@al/shared';
 import { appEnv } from '../config/env';
+import { decryptSecret, encryptSecret } from '../common/crypto/encryption';
 import { DatabaseService } from '../database/database.module';
 import { StorageService } from '../storage/storage.module';
 import { WhatsappService } from '../whatsapp/whatsapp.service';
@@ -130,7 +131,17 @@ export class ServiceOrdersService {
         .where(eq(serviceOrderAttachments.serviceOrderId, id))
         .orderBy(desc(serviceOrderAttachments.createdAt));
 
-      return { ...rows[0], events, attachments };
+      const { devicePasswordEncrypted, ...safeOs } = rows[0].os;
+
+      return {
+        ...rows[0],
+        os: {
+          ...safeOs,
+          hasDevicePassword: Boolean(devicePasswordEncrypted),
+        },
+        events,
+        attachments,
+      };
     });
 
     if (!result) {
@@ -181,11 +192,17 @@ export class ServiceOrdersService {
           priority: input.priority,
           reportedSymptoms: input.reportedSymptoms.trim(),
           preliminaryDiagnosis: input.preliminaryDiagnosis?.trim() || null,
+          devicePasswordEncrypted: input.devicePassword?.trim()
+            ? encryptSecret(input.devicePassword.trim())
+            : null,
+          devicePasswordHint: input.devicePasswordHint?.trim() || null,
           intakeChecklist: input.intakeChecklist,
           portalTokenHash,
           promisedAt: input.promisedAt ? new Date(input.promisedAt) : null,
         })
         .returning();
+
+      const { devicePasswordEncrypted: _hiddenCipher, ...safeOs } = os!;
 
       await tx.insert(serviceOrderEvents).values({
         organizationId,
@@ -207,7 +224,10 @@ export class ServiceOrdersService {
         afterState: { code: os!.code, status: os!.status, priority: os!.priority },
       });
 
-      return os!;
+      return {
+        ...safeOs,
+        hasDevicePassword: Boolean(_hiddenCipher),
+      };
     });
 
     const portalUrl = `${appEnv.APP_URL}/portal/${created.code}?token=${portalToken}`;
@@ -228,6 +248,56 @@ export class ServiceOrdersService {
       portalToken,
       portalUrl,
     };
+  }
+
+  async revealDevicePassword(
+    organizationId: string,
+    id: string,
+    userId: string,
+  ) {
+    return this.database.withTenant(organizationId, async (tx) => {
+      const [row] = await tx
+        .select({
+          id: serviceOrders.id,
+          code: serviceOrders.code,
+          devicePasswordEncrypted: serviceOrders.devicePasswordEncrypted,
+          devicePasswordHint: serviceOrders.devicePasswordHint,
+        })
+        .from(serviceOrders)
+        .where(eq(serviceOrders.id, id))
+        .limit(1);
+
+      if (!row) {
+        throw new NotFoundException('Ordem de serviço não encontrada.');
+      }
+
+      if (!row.devicePasswordEncrypted) {
+        return {
+          hasPassword: false,
+          password: null,
+          hint: row.devicePasswordHint ?? null,
+        };
+      }
+
+      const password = decryptSecret(row.devicePasswordEncrypted);
+
+      await tx.insert(auditLogs).values({
+        organizationId,
+        actorType: 'human',
+        actorId: userId,
+        action: 'service_order.password_revealed',
+        entityType: 'service_order',
+        entityId: id,
+        afterState: { code: row.code },
+        reason: 'Técnico visualizou credencial de desbloqueio em bancada',
+      });
+
+      return {
+        hasPassword: true,
+        password,
+        hint: row.devicePasswordHint ?? null,
+      };
+    });
   }
 
   async updateStatus(

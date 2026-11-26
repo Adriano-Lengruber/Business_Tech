@@ -69,6 +69,7 @@ Cada organização (`tenant`) ativa apenas os módulos necessários para o seu n
 
 - **Isolamento no Banco de Dados (Row-Level Security):** Toda tabela de negócio possui `organization_id` protegido por `FORCE ROW LEVEL SECURITY`. A função `withTenantContext(db, organizationId, fn)` em [`packages/database/src/client.ts`](packages/database/src/client.ts) executa transações sob a role não-privilegiada `al_app` com `set_config('app.current_tenant_id', ...)`.
 - **RBAC Granular:** Papéis `owner`, `admin`, `technician`, `attendant` e `viewer` verificados server-side por `PermissionsGuard`.
+- **Credenciais de Bancada Criptografadas (LGPD):** Senhas/PINs de desbloqueio de aparelhos são cifrados com **AES-256-GCM** (`device_password_encrypted`), nunca exibidos em listagens, nunca impressos no Termo PDF ou expostos no Portal do Cliente, e cada visualização na bancada grava trilha em `audit_logs`.
 - **Privacidade de IA (`ai_privacy_mode`):** Organizações em `strict_local` bloqueiam qualquer chamada de LLM para APIs externas no nível do `AiGateway`.
 - **Auditoria Imutável (`audit_logs`):** Registra autor (`human`, `ai_agent` ou `automation`), ação, entidade e estados anterior/posterior.
 

@@ -3,43 +3,68 @@
 @tailwind utilities;
 
 :root {
-  --al-bg: #F8FAFC;
+  --al-bg: #F7F6F2;
   --al-surface: #FFFFFF;
-  --al-surface-muted: #F1F5F9;
-  --al-border: #E2E8F0;
-  --al-text-primary: #0F172A;
-  --al-text-secondary: #475569;
-  --al-text-muted: #64748B;
-  --al-accent: #2563EB;
-  --al-accent-hover: #1D4ED8;
+  --al-surface-muted: #EFECE4;
+  --al-border: #E5E3DC;
+  --al-text-primary: #18181B;
+  --al-text-secondary: #52525B;
+  --al-text-muted: #71717A;
+  --al-accent: #0D9488;
+  --al-accent-hover: #0F766E;
   --al-accent-foreground: #FFFFFF;
-  --al-success: #15803D;
-  --al-warning: #B45309;
-  --al-danger: #B91C1C;
+  --al-copper: #D97706;
+  --al-success: #059669;
+  --al-warning: #D97706;
+  --al-danger: #E11D48;
+  --al-info: #0284C7;
 }
 
 .dark {
-  --al-bg: #0B0F17;
-  --al-surface: #111827;
-  --al-surface-muted: #1E293B;
-  --al-border: #263142;
-  --al-text-primary: #F8FAFC;
-  --al-text-secondary: #94A3B8;
-  --al-text-muted: #64748B;
-  --al-accent: #3B82F6;
-  --al-accent-hover: #60A5FA;
-  --al-accent-foreground: #0B0F17;
-  --al-success: #22C55E;
+  --al-bg: #09090B;
+  --al-surface: #111114;
+  --al-surface-muted: #18181D;
+  --al-border: #25252B;
+  --al-text-primary: #F4F4F5;
+  --al-text-secondary: #A1A1AA;
+  --al-text-muted: #71717A;
+  --al-accent: #14B8A6;
+  --al-accent-hover: #2DD4BF;
+  --al-accent-foreground: #042F2E;
+  --al-copper: #F59E0B;
+  --al-success: #10B981;
   --al-warning: #F59E0B;
-  --al-danger: #EF4444;
+  --al-danger: #F43F5E;
+  --al-info: #38BDF8;
 }
 
-body {
-  background-color: var(--al-bg);
-  color: var(--al-text-primary);
-  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+@layer base {
+  body {
+    background-color: var(--al-bg);
+    color: var(--al-text-primary);
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    -webkit-font-smoothing: antialiased;
+  }
+
+  h1, h2, h3, .font-display {
+    font-family: var(--font-display), var(--font-sans), system-ui, sans-serif;
+    letter-spacing: -0.02em;
+  }
 }
 
 .tabular-nums {
   font-variant-numeric: tabular-nums;
+}
+
+.al-card {
+  background-color: var(--al-surface);
+  border: 1px solid var(--al-border);
+  border-radius: 14px;
+}
+
+.al-grid-bg {
+  background-image:
+    linear-gradient(to right, color-mix(in srgb, var(--al-border) 42%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in srgb, var(--al-border) 42%, transparent) 1px, transparent 1px);
+  background-size: 40px 40px;
 }

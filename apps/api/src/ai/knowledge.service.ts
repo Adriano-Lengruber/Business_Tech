@@ -42,6 +42,15 @@ export class KnowledgeService {
     localChatModel: appEnv.OLLAMA_CHAT_MODEL,
     localReasoningModel: appEnv.OLLAMA_REASONING_MODEL,
   });
+  private readonly briefingCache = new Map<
+    string,
+    {
+      narrative: string;
+      provider: string;
+      model: string;
+      expiresAt: number;
+    }
+  >();
 
   constructor(
     @Inject(DatabaseService) private readonly database: DatabaseService,
@@ -182,7 +191,7 @@ export class KnowledgeService {
     });
   }
 
-  async getDailyBriefing(organizationId: string) {
+  async getDailyBriefing(organizationId: string, refreshAi = false) {
     const startMs = Date.now();
 
     const snapshot = await this.database.withTenant(
@@ -265,25 +274,65 @@ export class KnowledgeService {
     );
 
     let narrative = `Bom dia. A ${snapshot.orgName} possui ${snapshot.openOsCount} OS aberta(s) (${snapshot.urgentOsCount} prioritária(s)), ${snapshot.waitingHumanCount} atendimento(s) no WhatsApp aguardando humano, ${snapshot.lowStockCount} item(ns) com estoque baixo, ${snapshot.newLeadsCount} lead(s) novo(s) e ${overdueBrl} em cobranças vencidas.`;
-    let provider = 'grounded-fallback';
+    let provider = 'grounded-instant';
     let model = 'deterministic-briefing';
+    let aiStatus: 'instant_grounded' | 'ai_enriched' = 'instant_grounded';
 
-    try {
-      const res = await this.aiGateway.generateGroundedReply({
-        task: 'executive_briefing',
-        privacyMode: snapshot.privacyMode,
-        system:
-          'Você é o Analista Executivo do ERP. Gere um briefing matinal de 2 a 3 frases em PT-BR usando APENAS os números fornecidos. Nunca invente valores.',
-        prompt: JSON.stringify(snapshot),
-        timeoutMs: 6000,
-      });
-      if (res.text) {
-        narrative = res.text;
-        provider = res.providerKind;
-        model = res.modelId;
+    const cached = this.briefingCache.get(organizationId);
+    const nowMs = Date.now();
+
+    if (cached && cached.expiresAt > nowMs && !refreshAi) {
+      narrative = cached.narrative;
+      provider = cached.provider;
+      model = cached.model;
+      aiStatus = 'ai_enriched';
+    } else if (refreshAi) {
+      try {
+        const res = await this.aiGateway.generateGroundedReply({
+          task: 'executive_briefing',
+          privacyMode: snapshot.privacyMode,
+          system:
+            'Você é o Analista Executivo do ERP. Gere um briefing matinal de 2 a 3 frases em PT-BR usando APENAS os números fornecidos. Nunca invente valores.',
+          prompt: JSON.stringify(snapshot),
+          timeoutMs: 2500,
+        });
+        if (res.text) {
+          narrative = res.text;
+          provider = res.providerKind;
+          model = res.modelId;
+          aiStatus = 'ai_enriched';
+          this.briefingCache.set(organizationId, {
+            narrative,
+            provider,
+            model,
+            expiresAt: nowMs + 10 * 60 * 1000,
+          });
+        }
+      } catch {
+        // Mantém resposta instantânea determinística quando Ollama local estiver offline
       }
-    } catch {
-      // Mantém narrativa determinística aterrada nos números reais
+    } else {
+      // Atualiza cache em segundo plano sem bloquear a resposta do painel
+      void this.aiGateway
+        .generateGroundedReply({
+          task: 'executive_briefing',
+          privacyMode: snapshot.privacyMode,
+          system:
+            'Você é o Analista Executivo do ERP. Gere um briefing matinal de 2 a 3 frases em PT-BR usando APENAS os números fornecidos. Nunca invente valores.',
+          prompt: JSON.stringify(snapshot),
+          timeoutMs: 2500,
+        })
+        .then((res) => {
+          if (res.text) {
+            this.briefingCache.set(organizationId, {
+              narrative: res.text,
+              provider: res.providerKind,
+              model: res.modelId,
+              expiresAt: Date.now() + 10 * 60 * 1000,
+            });
+          }
+        })
+        .catch(() => undefined);
     }
 
     await this.database.withTenant(organizationId, (tx) =>
@@ -299,6 +348,8 @@ export class KnowledgeService {
 
     return {
       ...snapshot,
+      aiStatus,
+      generatedInMs: Date.now() - startMs,
       narrative,
       highlights: [
         {

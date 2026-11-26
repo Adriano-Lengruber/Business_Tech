@@ -77,6 +77,8 @@ export const serviceOrders = pgTable(
     priority: varchar('priority', { length: 20 }).notNull().default('NORMAL'),
     reportedSymptoms: text('reported_symptoms').notNull(),
     preliminaryDiagnosis: text('preliminary_diagnosis'),
+    devicePasswordEncrypted: text('device_password_encrypted'),
+    devicePasswordHint: varchar('device_password_hint', { length: 120 }),
     intakeChecklist: jsonb('intake_checklist')
       .$type<Record<string, unknown>>()
       .notNull()
