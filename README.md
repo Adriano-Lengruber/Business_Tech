@@ -40,7 +40,8 @@ Cada organização (`tenant`) ativa apenas os módulos necessários para o seu n
 | Código | Módulo | O que entrega | Status |
 |---|---|---|---|
 | `core` | **Núcleo CRM & Inbox** *(Obrigatório)* | Multi-tenant RLS, Auth/RBAC, Clientes PF/PJ, Timeline Unificada, Inbox Omnichannel e Portal do Cliente. | Implementado (Fase 0/1) |
-| `mod-service-orders` | **Assistência Técnica & OS** | Balcão expresso, QR Code, S3, Termo PDF, Diagnóstico IA, Orçamentos 3 Tiers e Portal com aceite digital. | Implementado (Fase 1–2) |
+| `mod-service-orders` | **Assistência Técnica & OS** | Balcão expresso, QR Code, S3, Termo PDF, PIN criptografado, Snapshots Antes/Depois, Laudo PDF, Orçamentos 3 Tiers, Garantia/RMA e Portal. | Implementado (Fase 1–7) |
+| `mod-contracts-sla` | **Contratos B2B, Preventiva & SLA** | Planos recorrentes de suporte TI, franquia de horas, ativos cobertos, SLA e agenda preventiva integrada ao financeiro. | Implementado (Fase 7) |
 | `mod-ai-agents` | **Agentes de IA & WhatsApp** | AI Gateway local-first, WhatsApp Adapter, BullMQ Debounce, Handoff, RAG híbrido (`pgvector`+RRF), Briefing Diário e Copiloto `Ctrl+K`. | Implementado (Fase 1–5) |
 | `mod-inventory-pos` | **Estoque, Compras & PDV** | Catálogo multi-segmento, ledger de estoque, alertas, fornecedores/compras, baixa na OS e PDV rápido. | Implementado (Fase 3) |
 | `mod-finance-fiscal` | **Financeiro & Fiscal BR** | Contas a pagar/receber, fluxo líquido, PIX Asaas/Sandbox com webhook e camada fiscal NF-e/NFC-e/NFS-e + IA. | Implementado (Fase 2–3) |

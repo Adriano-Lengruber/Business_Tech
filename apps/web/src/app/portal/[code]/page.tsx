@@ -26,6 +26,20 @@ interface PortalData {
     finalDiagnosis: string | null;
     clientExplanation: string | null;
   } | null;
+  hardwareComparison?: {
+    before: {
+      ramGb: number | null;
+      storageSummary: string | null;
+      smartHealthPct: number | null;
+      cpuTempCelsius: number | null;
+    } | null;
+    after: {
+      ramGb: number | null;
+      storageSummary: string | null;
+      smartHealthPct: number | null;
+      cpuTempCelsius: number | null;
+    } | null;
+  } | null;
   quotes: Array<{
     id: string;
     code: string;
@@ -183,11 +197,34 @@ function CustomerPortalContent() {
                   {data.reportedSymptoms}
                 </p>
                 {data.diagnostic?.clientExplanation && (
-                  <div className="rounded-lg border border-accent/25 bg-accent/5 p-3 text-xs text-text-secondary">
+                  <div className="rounded-xl border border-accent/25 bg-accent/5 p-3 text-xs text-text-secondary">
                     <strong className="block text-text-primary">
                       Explicação Técnica do Diagnóstico:
                     </strong>
                     {data.diagnostic.clientExplanation}
+                  </div>
+                )}
+                {data.hardwareComparison && (
+                  <div className="rounded-xl border border-border bg-bg p-3 text-xs">
+                    <strong className="block font-mono text-[11px] uppercase text-accent">
+                      Comparativo Técnico (Antes x Depois)
+                    </strong>
+                    <div className="mt-2 grid grid-cols-2 gap-2 font-mono">
+                      <div className="rounded-lg bg-surface p-2">
+                        <span className="block text-[10px] text-text-muted">ENTRADA</span>
+                        <span>
+                          RAM: {data.hardwareComparison.before?.ramGb ?? '—'}GB · Temp:{' '}
+                          {data.hardwareComparison.before?.cpuTempCelsius ?? '—'}°C
+                        </span>
+                      </div>
+                      <div className="rounded-lg bg-surface p-2">
+                        <span className="block text-[10px] text-success">ENTREGA</span>
+                        <span>
+                          RAM: {data.hardwareComparison.after?.ramGb ?? '—'}GB · Temp:{' '}
+                          {data.hardwareComparison.after?.cpuTempCelsius ?? '—'}°C
+                        </span>
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>

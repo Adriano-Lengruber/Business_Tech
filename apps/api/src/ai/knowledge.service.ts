@@ -54,7 +54,7 @@ export class KnowledgeService {
 
   constructor(
     @Inject(DatabaseService) private readonly database: DatabaseService,
-  ) {}
+  ) { }
 
   async listDocuments(organizationId: string) {
     return this.database.withTenant(organizationId, async (tx) => {
@@ -513,19 +513,19 @@ export class KnowledgeService {
         answer =
           lowStock.length > 0
             ? `Itens com estoque baixo/crítico: ${lowStock
-                .map((p) => `${p.name} (${p.sku}: ${p.stockQty} un, mín ${p.minStockQty})`)
-                .join('; ')}.`
+              .map((p) => `${p.name} (${p.sku}: ${p.stockQty} un, mín ${p.minStockQty})`)
+              .join('; ')}.`
             : 'Nenhum produto está abaixo do estoque mínimo no momento.';
       } else if (q.includes('os') || q.includes('ordem') || q.includes('bancada') || q.includes('diagnóstico')) {
         answer =
           osData.length > 0
             ? `Ordens recentes no sistema: ${osData
-                .slice(0, 5)
-                .map(
-                  (o) =>
-                    `${o.code} (${OS_STATUS_LABELS[o.status as OsStatus] ?? o.status})`,
-                )
-                .join(', ')}.`
+              .slice(0, 5)
+              .map(
+                (o) =>
+                  `${o.code} (${OS_STATUS_LABELS[o.status as OsStatus] ?? o.status})`,
+              )
+              .join(', ')}.`
             : 'Nenhuma OS encontrada para esta organização.';
       } else if (q.includes('receber') || q.includes('pagar') || q.includes('caixa') || q.includes('finance')) {
         const pendingRec = finData

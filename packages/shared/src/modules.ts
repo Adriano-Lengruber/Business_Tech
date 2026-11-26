@@ -7,6 +7,7 @@ export const MODULE_CODES = [
   'mod-3d-print',
   'mod-projects-dev',
   'mod-social-growth',
+  'mod-contracts-sla',
 ] as const;
 
 export type ModuleCode = (typeof MODULE_CODES)[number];
@@ -83,5 +84,13 @@ export const MODULE_CATALOG: Record<ModuleCode, ModuleDefinition> = {
       'Calendário editorial, geração de posts por IA, agendamento, métricas e captura de leads.',
     required: false,
     dependsOn: ['core', 'mod-ai-agents'],
+  },
+  'mod-contracts-sla': {
+    code: 'mod-contracts-sla',
+    name: 'Contratos B2B, Preventiva & SLA',
+    description:
+      'Contratos mensais de suporte TI, franquia de horas, ativos cobertos, SLA e agenda preventiva.',
+    required: false,
+    dependsOn: ['core'],
   },
 };

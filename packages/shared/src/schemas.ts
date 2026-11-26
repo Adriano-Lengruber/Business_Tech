@@ -368,3 +368,59 @@ export const copilotAskSchema = z.object({
   question: z.string().min(2, 'Digite uma pergunta').max(1000),
 });
 export type CopilotAskInput = z.infer<typeof copilotAskSchema>;
+
+export const createHardwareSnapshotSchema = z.object({
+  stage: z.enum(['BEFORE', 'AFTER']).default('BEFORE'),
+  source: z
+    .enum(['manual', 'windows_collector', 'agent_json'])
+    .default('manual'),
+  cpuModel: z.string().max(160).optional(),
+  ramGb: z.coerce.number().int().min(1).max(2048).optional().nullable(),
+  storageSummary: z.string().max(180).optional(),
+  smartHealthPct: z.coerce.number().int().min(0).max(100).optional().nullable(),
+  batteryHealthPct: z.coerce.number().int().min(0).max(100).optional().nullable(),
+  osVersion: z.string().max(140).optional(),
+  cpuTempCelsius: z.coerce.number().int().min(0).max(130).optional().nullable(),
+  notes: z.string().max(1500).optional(),
+});
+export type CreateHardwareSnapshotInput = z.infer<
+  typeof createHardwareSnapshotSchema
+>;
+
+export const createWarrantyCaseSchema = z.object({
+  kind: z.enum(['service', 'part_rma']).default('service'),
+  warrantyDays: z.coerce.number().int().min(1).max(1825).default(90),
+  supplierName: z.string().max(160).optional(),
+  partDescription: z.string().max(200).optional(),
+  notes: z.string().max(1500).optional(),
+});
+export type CreateWarrantyCaseInput = z.infer<typeof createWarrantyCaseSchema>;
+
+export const updateWarrantyStatusSchema = z.object({
+  status: z.enum(['ACTIVE', 'CLAIMED', 'IN_RMA', 'RESOLVED']),
+  resolutionNotes: z.string().max(1500).optional(),
+});
+export type UpdateWarrantyStatusInput = z.infer<
+  typeof updateWarrantyStatusSchema
+>;
+
+export const createMaintenanceContractSchema = z.object({
+  customerId: z.string().uuid('Cliente obrigatório'),
+  title: z.string().min(3, 'Título obrigatório').max(180),
+  planTier: z.enum(['basic', 'preventive', 'enterprise_sla']).default('preventive'),
+  monthlyPriceCents: z.coerce.number().int().min(100),
+  includedHours: z.coerce.number().int().min(1).max(500).default(8),
+  slaResponseHours: z.coerce.number().int().min(1).max(168).default(4),
+  coveredAssetsCount: z.coerce.number().int().min(1).max(2000).default(5),
+  preventiveFrequencyDays: z.coerce.number().int().min(15).max(365).default(90),
+  notes: z.string().max(2000).optional(),
+});
+export type CreateMaintenanceContractInput = z.infer<
+  typeof createMaintenanceContractSchema
+>;
+
+export const logContractUsageSchema = z.object({
+  hoursUsed: z.coerce.number().int().min(1).max(100),
+  notes: z.string().max(500).optional(),
+});
+export type LogContractUsageInput = z.infer<typeof logContractUsageSchema>;

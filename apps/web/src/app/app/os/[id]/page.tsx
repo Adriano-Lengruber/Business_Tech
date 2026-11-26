@@ -13,6 +13,11 @@ import {
   type QuoteTier,
 } from '@al/shared';
 import { ErpShell } from '@/components/erp-shell';
+import {
+  HardwareCompareTab,
+  type HardwareDiffResponse,
+} from '@/components/os/hardware-tab';
+import { WarrantyRmaTab, type WarrantyRow } from '@/components/os/warranty-tab';
 import { apiFetch } from '@/lib/api';
 
 interface OsDetail {
@@ -86,10 +91,14 @@ function formatBrl(cents: number) {
 
 function OsDetailContent() {
   const params = useParams<{ id: string }>();
-  const [tab, setTab] = useState<'overview' | 'diagnostic' | 'quotes'>('overview');
+  const [tab, setTab] = useState<
+    'overview' | 'diagnostic' | 'hardware' | 'quotes' | 'warranty'
+  >('overview');
   const [detail, setDetail] = useState<OsDetail | null>(null);
   const [diagnostics, setDiagnostics] = useState<DiagnosticRow[]>([]);
   const [quotes, setQuotes] = useState<QuoteRow[]>([]);
+  const [hwData, setHwData] = useState<HardwareDiffResponse | null>(null);
+  const [warranties, setWarranties] = useState<WarrantyRow[]>([]);
 
   const [nextStatus, setNextStatus] = useState<OsStatus>('DIAGNOSIS');
   const [note, setNote] = useState('');
@@ -131,15 +140,24 @@ function OsDetailContent() {
   const load = useCallback(async () => {
     const token = window.localStorage.getItem('al_token');
     if (!token || !params.id) return;
-    const [data, diags, qList] = await Promise.all([
+    const [data, diags, qList, hw, warList] = await Promise.all([
       apiFetch<OsDetail>(`/service-orders/${params.id}`, { token }),
       apiFetch<DiagnosticRow[]>(`/service-orders/${params.id}/diagnostics`, { token }),
       apiFetch<QuoteRow[]>(`/service-orders/${params.id}/quotes`, { token }),
+      apiFetch<HardwareDiffResponse>(
+        `/service-orders/${params.id}/hardware-snapshots`,
+        { token },
+      ),
+      apiFetch<WarrantyRow[]>(`/service-orders/${params.id}/warranties`, {
+        token,
+      }),
     ]);
     setDetail(data);
     setNextStatus(data.os.status);
     setDiagnostics(diags);
     setQuotes(qList);
+    setHwData(hw);
+    setWarranties(warList);
   }, [params.id]);
 
   useEffect(() => {
@@ -323,16 +341,30 @@ function OsDetailContent() {
       </div>
 
       {/* Abas da OS */}
-      <div className="flex gap-2 border-b border-border">
+      <div className="flex flex-wrap gap-2 border-b border-border">
         {[
           { id: 'overview', label: 'Geral & Timeline' },
           { id: 'diagnostic', label: `Diagnóstico (${diagnostics.length})` },
+          {
+            id: 'hardware',
+            label: `Hardware & Laudo (${hwData?.snapshots.length ?? 0})`,
+          },
           { id: 'quotes', label: `Orçamentos (${quotes.length})` },
+          { id: 'warranty', label: `Garantia & RMA (${warranties.length})` },
         ].map((t) => (
           <button
             key={t.id}
             type="button"
-            onClick={() => setTab(t.id as 'overview' | 'diagnostic' | 'quotes')}
+            onClick={() =>
+              setTab(
+                t.id as
+                  | 'overview'
+                  | 'diagnostic'
+                  | 'hardware'
+                  | 'quotes'
+                  | 'warranty',
+              )
+            }
             className={`border-b-2 px-4 py-2 text-sm font-medium transition-colors ${
               tab === t.id
                 ? 'border-accent text-accent'
@@ -790,6 +822,18 @@ function OsDetailContent() {
             ))}
           </div>
         </div>
+      )}
+
+      {tab === 'hardware' && params.id && (
+        <HardwareCompareTab osId={params.id} data={hwData} onReload={load} />
+      )}
+
+      {tab === 'warranty' && params.id && (
+        <WarrantyRmaTab
+          osId={params.id}
+          warranties={warranties}
+          onReload={load}
+        />
       )}
     </div>
   );
