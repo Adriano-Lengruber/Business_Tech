@@ -31,7 +31,7 @@ flowchart LR
     subgraph Infra["Infraestrutura Docker Isolada"]
         PG[("PostgreSQL 16\nRLS + pgvector + FTS")]
         RD[("Redis\nCache + BullMQ")]
-        S3[("MinIO / S3\nFotos, PDFs, STL")]
+        S3[("RustFS / S3\nFotos, PDFs, STL")]
         WA["Evolution API\n(WhatsApp Adapter)"]
         Ollama["Ollama / LM Studio\n(LLMs + Embeddings Locais)"]
         Whisper["Faster-Whisper\n(Transcrição Áudio)"]

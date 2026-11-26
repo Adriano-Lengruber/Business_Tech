@@ -23,7 +23,7 @@ Todos os serviços externos rodam em containers isolados definidos em [`infra/do
   ```powershell
   pnpm.cmd infra:up
   ```
-  Sobe `postgres` (`pgvector:pg16`), `redis` (`7-alpine`) e `minio` (+ criação automática do bucket privado).
+  Sobe `postgres` (`pgvector:pg16`), `redis` (`7-alpine`) e `s3` (`rustfs/rustfs` S3-compatible).
 - **Com WhatsApp (Evolution API):**
   ```powershell
   pnpm.cmd infra:up:whatsapp
