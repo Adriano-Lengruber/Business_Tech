@@ -44,6 +44,8 @@ import { ProjectsService } from './projects/projects.service';
 import { LeadsController, SocialController } from './social/social.controller';
 import { SocialService } from './social/social.service';
 import { SearchController } from './search/search.controller';
+import { AnalyticsController } from './analytics/analytics.controller';
+import { AnalyticsService } from './analytics/analytics.service';
 import { HealthController } from './health/health.controller';
 
 @Module({
@@ -86,6 +88,7 @@ import { HealthController } from './health/health.controller';
     SocialController,
     LeadsController,
     SearchController,
+    AnalyticsController,
   ],
   providers: [
     AuthService,
@@ -101,6 +104,7 @@ import { HealthController } from './health/health.controller';
     Print3dService,
     ProjectsService,
     SocialService,
+    AnalyticsService,
     { provide: APP_GUARD, useClass: JwtAuthGuard },
     { provide: APP_GUARD, useClass: PermissionsGuard },
     { provide: APP_GUARD, useClass: ModuleEntitlementGuard },

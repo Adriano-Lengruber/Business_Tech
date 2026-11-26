@@ -55,6 +55,17 @@ export class ServiceOrdersController {
     return this.service.getById(user.organizationId, id);
   }
 
+  @Post(':id/reveal-password')
+  @RequirePermission('os:write')
+  @ApiOperation({ summary: 'Descriptografar PIN/senha do dispositivo com registro em audit_logs (LGPD)' })
+  revealPassword(@Param('id') id: string, @CurrentUser() user: AuthenticatedUser) {
+    return this.service.revealDevicePassword(
+      user.organizationId,
+      id,
+      user.userId,
+    );
+  }
+
   @Post()
   @RequirePermission('os:write')
   @ApiOperation({ summary: 'Dar entrada de OS no balcão e disparar notificação WhatsApp' })

@@ -1,8 +1,14 @@
 import type { Metadata } from 'next';
-import { Inter, JetBrains_Mono } from 'next/font/google';
+import { Inter, JetBrains_Mono, Plus_Jakarta_Sans } from 'next/font/google';
 import type { ReactNode } from 'react';
 import { ThemeProvider } from '@/components/theme-provider';
 import './globals.css';
+
+const plusJakarta = Plus_Jakarta_Sans({
+  subsets: ['latin'],
+  variable: '--font-display',
+  display: 'swap',
+});
 
 const inter = Inter({
   subsets: ['latin'],
@@ -17,19 +23,19 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'AL Business OS — ERP/CRM Modular e Agêntico',
+  title: 'AL Business OS — Plataforma Agêntica de Gestão, Bancada e TI',
   description:
-    'Sistema operacional de negócio com IA local-first para assistência técnica, desenvolvimento de software, impressão 3D e varejo.',
+    'ERP/CRM modular com IA local-first, WhatsApp inteligente, diagnóstico técnico, estoque, PDV, fiscal e impressão 3D.',
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html
       lang="pt-BR"
-      className={`${inter.variable} ${jetbrainsMono.variable} dark`}
+      className={`${plusJakarta.variable} ${inter.variable} ${jetbrainsMono.variable} dark`}
       suppressHydrationWarning
     >
-      <body className="min-h-screen font-sans antialiased selection:bg-accent/20">
+      <body className="min-h-screen bg-bg font-sans text-text-primary antialiased selection:bg-accent/25 selection:text-text-primary">
         <ThemeProvider>{children}</ThemeProvider>
       </body>
     </html>

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import { useParams } from 'next/navigation';
-import { FileText, Plus, Sparkles, Trash2, Upload } from 'lucide-react';
+import { Eye, FileText, Lock, Plus, Sparkles, Trash2, Upload } from 'lucide-react';
 import {
   calculateQuoteTotals,
   OS_STATUSES,
@@ -23,6 +23,8 @@ interface OsDetail {
     priority: string;
     reportedSymptoms: string;
     preliminaryDiagnosis: string | null;
+    hasDevicePassword?: boolean;
+    devicePasswordHint?: string | null;
     createdAt: string;
   };
   customer: { name: string; phoneE164: string };
@@ -92,6 +94,8 @@ function OsDetailContent() {
   const [nextStatus, setNextStatus] = useState<OsStatus>('DIAGNOSIS');
   const [note, setNote] = useState('');
   const [notify, setNotify] = useState(true);
+  const [revealedPassword, setRevealedPassword] = useState<string | null>(null);
+  const [revealing, setRevealing] = useState(false);
 
   // Diagnostic form
   const [diagCategory, setDiagCategory] = useState('superaquecimento');
@@ -169,6 +173,24 @@ function OsDetailContent() {
     });
     const blob = await res.blob();
     window.open(URL.createObjectURL(blob), '_blank');
+  }
+
+  async function handleRevealPassword() {
+    const token = window.localStorage.getItem('al_token');
+    if (!token || !params.id) return;
+    setRevealing(true);
+    try {
+      const res = await apiFetch<{
+        hasPassword: boolean;
+        password: string | null;
+      }>(`/service-orders/${params.id}/reveal-password`, {
+        method: 'POST',
+        token,
+      });
+      setRevealedPassword(res.password);
+    } finally {
+      setRevealing(false);
+    }
   }
 
   async function handleUploadFile(file: File) {
@@ -336,6 +358,37 @@ function OsDetailContent() {
                   <strong className="text-text-primary">Pré-diagnóstico:</strong>{' '}
                   {detail.os.preliminaryDiagnosis}
                 </p>
+              )}
+              {(detail.os.hasDevicePassword || detail.os.devicePasswordHint) && (
+                <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-accent/30 bg-accent/5 p-3">
+                  <div className="space-y-0.5 text-xs">
+                    <span className="flex items-center gap-1.5 font-semibold text-accent">
+                      <Lock className="h-3.5 w-3.5" />
+                      Credencial de Bancada (AES-256 · LGPD)
+                    </span>
+                    {detail.os.devicePasswordHint && (
+                      <p className="text-text-secondary">
+                        Dica: {detail.os.devicePasswordHint}
+                      </p>
+                    )}
+                    {revealedPassword && (
+                      <p className="font-mono text-sm font-bold text-text-primary">
+                        Senha/PIN: {revealedPassword}
+                      </p>
+                    )}
+                  </div>
+                  {detail.os.hasDevicePassword && !revealedPassword && (
+                    <button
+                      type="button"
+                      disabled={revealing}
+                      onClick={() => void handleRevealPassword()}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-surface px-3 py-1.5 text-xs font-medium hover:border-accent"
+                    >
+                      <Eye className="h-3.5 w-3.5" />
+                      {revealing ? 'Descriptografando...' : 'Revelar PIN (Auditar)'}
+                    </button>
+                  )}
+                </div>
               )}
             </div>
 

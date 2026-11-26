@@ -13,6 +13,7 @@ import {
   tenantModules,
   customers,
   assets,
+  financialTransactions,
   serviceOrders,
   serviceOrderEvents,
   osDiagnostics,
@@ -677,6 +678,170 @@ async function seed() {
           chunkIndex: 0,
           content: thermalSopContent,
           metadata: { source: 'SOP Técnico: Diagnóstico de Superaquecimento' },
+        },
+      ]);
+    }
+
+    // Seed adicional para gráficos BI e pipeline Kanban realistas
+    const existingOsAll = await db
+      .select({ code: serviceOrders.code })
+      .from(serviceOrders)
+      .where(eq(serviceOrders.organizationId, orgId));
+
+    const existingCustList = await db
+      .select({ id: customers.id })
+      .from(customers)
+      .where(eq(customers.organizationId, orgId))
+      .limit(1);
+
+    if (existingCustList[0] && existingOsAll.length < 2) {
+      const custId = existingCustList[0].id;
+      const now = Date.now();
+      const extraOrders = [
+        {
+          code: 'OS-2026-0002',
+          status: 'IN_REPAIR',
+          priority: 'URGENT',
+          reportedSymptoms: 'MacBook Pro M1 sem carregar pela porta USB-C direita.',
+          preliminaryDiagnosis: 'Possível falha no controlador CD3217 ou placa de carga.',
+          createdAt: new Date(now - 2 * 86400000),
+        },
+        {
+          code: 'OS-2026-0003',
+          status: 'QUOTE_SENT',
+          priority: 'HIGH',
+          reportedSymptoms: 'Desktop Ryzen travando em jogos e SSD com alerta SMART.',
+          preliminaryDiagnosis: 'NVMe degradado; orçamento enviado com opção de SSD 1TB.',
+          createdAt: new Date(now - 1 * 86400000),
+        },
+        {
+          code: 'OS-2026-0004',
+          status: 'READY',
+          priority: 'NORMAL',
+          reportedSymptoms: 'Troca de tela LED 15.6" Full HD + calibração de dobradiças.',
+          preliminaryDiagnosis: 'Painel eDP substituído e aprovado em teste de bancada.',
+          createdAt: new Date(now - 4 * 86400000),
+        },
+      ];
+
+      for (const item of extraOrders) {
+        if (!existingOsAll.some((o) => o.code === item.code)) {
+          await db.insert(serviceOrders).values({
+            organizationId: orgId,
+            code: item.code,
+            customerId: custId,
+            status: item.status,
+            priority: item.priority,
+            reportedSymptoms: item.reportedSymptoms,
+            preliminaryDiagnosis: item.preliminaryDiagnosis,
+            intakeChecklist: { chargerIncluded: true },
+            portalTokenHash: createHash('sha256')
+              .update(`seed-${item.code}`)
+              .digest('hex'),
+            createdAt: item.createdAt,
+            updatedAt: item.createdAt,
+          });
+        }
+      }
+    }
+
+    const existingTx = await db
+      .select({ id: financialTransactions.id })
+      .from(financialTransactions)
+      .where(eq(financialTransactions.organizationId, orgId))
+      .limit(1);
+
+    if (existingTx.length === 0) {
+      const today = new Date();
+      const dayOffset = (days: number) => {
+        const d = new Date(today);
+        d.setDate(today.getDate() - days);
+        return d;
+      };
+
+      await db.insert(financialTransactions).values([
+        {
+          organizationId: orgId,
+          type: 'receivable',
+          status: 'CONFIRMED',
+          category: 'servicos_bancada',
+          description: 'Manutenção preventiva + troca de pasta térmica',
+          amountCents: 38000,
+          paymentMethod: 'PIX',
+          dueDate: dayOffset(5),
+          paidAt: dayOffset(5),
+          createdAt: dayOffset(5),
+        },
+        {
+          organizationId: orgId,
+          type: 'payable',
+          status: 'CONFIRMED',
+          category: 'pecas_estoque',
+          description: 'Reposição NVMe Kingston + kits térmicos',
+          amountCents: 21500,
+          paymentMethod: 'BOLETO',
+          dueDate: dayOffset(4),
+          paidAt: dayOffset(4),
+          createdAt: dayOffset(4),
+        },
+        {
+          organizationId: orgId,
+          type: 'pos_sale',
+          status: 'CONFIRMED',
+          category: 'pdv_balcao',
+          description: 'Venda PDV — Cabo USB-C 100W + Fonte GaN',
+          amountCents: 25900,
+          paymentMethod: 'CREDIT_CARD',
+          dueDate: dayOffset(3),
+          paidAt: dayOffset(3),
+          createdAt: dayOffset(3),
+        },
+        {
+          organizationId: orgId,
+          type: 'receivable',
+          status: 'CONFIRMED',
+          category: 'upgrade_hardware',
+          description: 'Upgrade SSD 1TB + 16GB DDR4 Workstation',
+          amountCents: 74000,
+          paymentMethod: 'PIX',
+          dueDate: dayOffset(2),
+          paidAt: dayOffset(2),
+          createdAt: dayOffset(2),
+        },
+        {
+          organizationId: orgId,
+          type: 'payable',
+          status: 'CONFIRMED',
+          category: 'infra_energia',
+          description: 'Licença SaaS & Energia Laboratório',
+          amountCents: 19000,
+          paymentMethod: 'PIX',
+          dueDate: dayOffset(1),
+          paidAt: dayOffset(1),
+          createdAt: dayOffset(1),
+        },
+        {
+          organizationId: orgId,
+          type: 'receivable',
+          status: 'CONFIRMED',
+          category: 'impressao_3d',
+          description: 'Lote peças PETG Técnico (3D-2026-0001)',
+          amountCents: 49500,
+          paymentMethod: 'PIX',
+          dueDate: dayOffset(0),
+          paidAt: dayOffset(0),
+          createdAt: dayOffset(0),
+        },
+        {
+          organizationId: orgId,
+          type: 'receivable',
+          status: 'PENDING',
+          category: 'orcamento_os',
+          description: 'Aguardando aprovação/pagamento OS-2026-0001',
+          amountCents: 28000,
+          paymentMethod: 'PIX',
+          dueDate: dayOffset(1),
+          createdAt: dayOffset(2),
         },
       ]);
     }

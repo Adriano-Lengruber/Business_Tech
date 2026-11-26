@@ -2,7 +2,7 @@
 
 import { useEffect, useState, type FormEvent } from 'react';
 import Link from 'next/link';
-import { CheckCircle2, FileText, MessageSquare, Plus, QrCode, Search } from 'lucide-react';
+import { CheckCircle2, FileText, Lock, MessageSquare, Plus, QrCode, Search } from 'lucide-react';
 import { ErpShell } from '@/components/erp-shell';
 import { apiFetch } from '@/lib/api';
 
@@ -48,6 +48,8 @@ function NewOsForm() {
   const [priority, setPriority] = useState<'LOW' | 'NORMAL' | 'HIGH' | 'URGENT'>('NORMAL');
   const [symptoms, setSymptoms] = useState('');
   const [preliminaryDiagnosis, setPreliminaryDiagnosis] = useState('');
+  const [devicePassword, setDevicePassword] = useState('');
+  const [devicePasswordHint, setDevicePasswordHint] = useState('');
   const [chargerIncluded, setChargerIncluded] = useState(true);
   const [backupRequested, setBackupRequested] = useState(false);
   const [scratchesNoted, setScratchesNoted] = useState(false);
@@ -153,6 +155,8 @@ function NewOsForm() {
           priority,
           reportedSymptoms: symptoms,
           preliminaryDiagnosis: preliminaryDiagnosis || undefined,
+          devicePassword: devicePassword || undefined,
+          devicePasswordHint: devicePasswordHint || undefined,
           intakeChecklist: {
             chargerIncluded,
             backupRequested,
@@ -399,8 +403,31 @@ function NewOsForm() {
       </section>
 
       {/* Passo 3: Sintomas, Pré-diagnóstico e Evidências */}
-      <section className="rounded-lg border border-border bg-surface p-5 space-y-4">
-        <h2 className="text-sm font-semibold">3. Sintomas, Checklist e Notificação WhatsApp</h2>
+      <section className="rounded-2xl border border-border bg-surface p-5 space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2 className="text-sm font-semibold">3. Sintomas, Segurança LGPD e Notificação WhatsApp</h2>
+          <div className="flex flex-wrap gap-1.5">
+            {[
+              'Não liga / sem vídeo',
+              'Superaquecimento e desligamento',
+              'Lentidão extrema (upgrade SSD)',
+              'Tela quebrada / dobradiça',
+            ].map((preset) => (
+              <button
+                key={preset}
+                type="button"
+                onClick={() =>
+                  setSymptoms((prev) =>
+                    prev ? `${prev.trim()} · ${preset}` : preset,
+                  )
+                }
+                className="rounded-full border border-border bg-bg px-2.5 py-0.5 text-[11px] text-text-secondary transition-colors hover:border-accent hover:text-accent"
+              >
+                + {preset}
+              </button>
+            ))}
+          </div>
+        </div>
 
         <div className="grid gap-4 sm:grid-cols-3">
           <div className="sm:col-span-2">
@@ -454,8 +481,36 @@ function NewOsForm() {
             placeholder="Ex: Suspeita de memória RAM oxidada ou falha no circuito de carga"
             value={preliminaryDiagnosis}
             onChange={(e) => setPreliminaryDiagnosis(e.target.value)}
-            className="mt-1 w-full rounded-md border border-border bg-bg px-3 py-2 text-sm outline-none focus:border-accent"
+            className="mt-1 w-full rounded-xl border border-border bg-bg px-3 py-2 text-sm outline-none focus:border-accent"
           />
+        </div>
+
+        <div className="grid gap-4 rounded-xl border border-border bg-surface-muted/40 p-4 sm:grid-cols-2">
+          <div>
+            <label className="flex items-center gap-1.5 text-xs font-medium text-text-secondary">
+              <Lock className="h-3.5 w-3.5 text-accent" />
+              Senha / PIN de desbloqueio (Criptografado AES-256 · LGPD)
+            </label>
+            <input
+              type="password"
+              placeholder="Opcional — nunca impresso no PDF nem exibido no portal"
+              value={devicePassword}
+              onChange={(e) => setDevicePassword(e.target.value)}
+              className="mt-1 w-full rounded-xl border border-border bg-bg px-3 py-2 text-sm outline-none focus:border-accent"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-text-secondary">
+              Dica / Usuário Windows (opcional)
+            </label>
+            <input
+              type="text"
+              placeholder="Ex: Usuário Local Admin / padrão em L"
+              value={devicePasswordHint}
+              onChange={(e) => setDevicePasswordHint(e.target.value)}
+              className="mt-1 w-full rounded-xl border border-border bg-bg px-3 py-2 text-sm outline-none focus:border-accent"
+            />
+          </div>
         </div>
 
         <div className="flex flex-wrap gap-5 pt-1 text-sm">

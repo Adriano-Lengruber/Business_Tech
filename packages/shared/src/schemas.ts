@@ -78,6 +78,8 @@ export const createServiceOrderSchema = z.object({
     .min(4, 'Descreva os sintomas relatados pelo cliente')
     .max(4000),
   preliminaryDiagnosis: z.string().max(4000).optional(),
+  devicePassword: z.string().max(120).optional(),
+  devicePasswordHint: z.string().max(120).optional(),
   intakeChecklist: z
     .object({
       chargerIncluded: z.boolean().default(false),
