@@ -4,6 +4,7 @@ import {
   FastifyAdapter,
   type NestFastifyApplication,
 } from '@nestjs/platform-fastify';
+import multipart from '@fastify/multipart';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import { appEnv } from './config/env';
@@ -14,6 +15,10 @@ async function bootstrap() {
     new FastifyAdapter({ logger: true }),
   );
 
+  await app.register(multipart, {
+    limits: { fileSize: 10 * 1024 * 1024 },
+  });
+
   app.setGlobalPrefix('api/v1');
   app.enableCors({
     origin: [appEnv.APP_URL, 'http://localhost:3000'],
@@ -23,7 +28,7 @@ async function bootstrap() {
   const swaggerConfig = new DocumentBuilder()
     .setTitle('AL Business OS API')
     .setDescription('API REST Modular Multi-Tenant com RBAC, RLS e IA Local-First')
-    .setVersion('0.1.0')
+    .setVersion('0.2.0')
     .addBearerAuth()
     .build();
 

@@ -1,5 +1,5 @@
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
-import type { LanguageModelV1 } from 'ai';
+import { generateText, type LanguageModelV1 } from 'ai';
 
 export type AiPrivacyMode = 'strict_local' | 'hybrid_anonymized' | 'cloud_allowed';
 
@@ -91,6 +91,33 @@ export class AiGateway {
       modelId,
       isLocal: true,
       model: localProvider(modelId),
+    };
+  }
+
+  async generateGroundedReply(params: {
+    task: AiTaskType;
+    privacyMode: AiPrivacyMode;
+    system: string;
+    prompt: string;
+    timeoutMs?: number;
+  }) {
+    const route = this.resolveModel({
+      task: params.task,
+      privacyMode: params.privacyMode,
+    });
+
+    const result = await generateText({
+      model: route.model,
+      system: params.system,
+      prompt: params.prompt,
+      abortSignal: AbortSignal.timeout(params.timeoutMs ?? 8000),
+    });
+
+    return {
+      text: result.text.trim(),
+      providerKind: route.providerKind,
+      modelId: route.modelId,
+      isLocal: route.isLocal,
     };
   }
 }
