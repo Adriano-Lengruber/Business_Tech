@@ -473,3 +473,53 @@ export const addSourcingOfferSchema = z.object({
   notes: z.string().max(1000).optional(),
 });
 export type AddSourcingOfferInput = z.infer<typeof addSourcingOfferSchema>;
+
+export const createChecklistTemplateSchema = z.object({
+  category: z.string().min(2).max(60).default('notebook'),
+  title: z.string().min(2, 'Título obrigatório').max(160),
+  blockClosingIfIncomplete: z.boolean().default(true),
+  items: z
+    .array(
+      z.object({
+        key: z.string().min(1).max(60),
+        label: z.string().min(2).max(200),
+        required: z.boolean().default(true),
+      }),
+    )
+    .min(1, 'Adicione ao menos 1 item no checklist'),
+});
+export type CreateChecklistTemplateInput = z.infer<
+  typeof createChecklistTemplateSchema
+>;
+
+export const upsertOsChecklistSchema = z.object({
+  templateId: z.string().uuid().optional().nullable(),
+  responses: z
+    .record(
+      z.object({
+        checked: z.boolean(),
+        note: z.string().max(400).optional(),
+      }),
+    )
+    .default({}),
+});
+export type UpsertOsChecklistInput = z.infer<typeof upsertOsChecklistSchema>;
+
+export const AUTOMATION_TRIGGER_EVENTS = [
+  'quote.pending_followup',
+  'os.ready_pickup_reminder',
+  'os.post_service_preventive',
+  'stock.low_alert',
+] as const;
+export type AutomationTriggerEvent = (typeof AUTOMATION_TRIGGER_EVENTS)[number];
+
+export const createAutomationRuleSchema = z.object({
+  name: z.string().min(2, 'Nome obrigatório').max(160),
+  triggerEvent: z.enum(AUTOMATION_TRIGGER_EVENTS),
+  channel: z.enum(['whatsapp', 'internal_alert']).default('whatsapp'),
+  delayHours: z.coerce.number().int().min(0).max(8760).default(48),
+  templateText: z.string().min(5, 'Mensagem/regra obrigatória').max(2000),
+});
+export type CreateAutomationRuleInput = z.infer<
+  typeof createAutomationRuleSchema
+>;
