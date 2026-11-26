@@ -1,7 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  calculatePosSaleTotals,
   calculateQuoteTotals,
+  checkStockAlert,
   createQuoteSchema,
   hasPermission,
   MODULE_CATALOG,
@@ -57,4 +59,23 @@ test('createQuoteSchema rejects empty items or invalid price', () => {
     items: [{ itemType: 'labor', description: 'Teste', unitPriceCents: -10 }],
   });
   assert.equal(negativePrice.success, false);
+});
+
+test('calculatePosSaleTotals and checkStockAlert enforce exact integer cents and thresholds', () => {
+  const sale = calculatePosSaleTotals(
+    [
+      { quantity: 2, unitCostCents: 10000, unitPriceCents: 15000 },
+      { quantity: 1, unitCostCents: 2000, unitPriceCents: 5000 },
+    ],
+    2000,
+  );
+  assert.equal(sale.subtotalCents, 35000);
+  assert.equal(sale.discountCents, 2000);
+  assert.equal(sale.totalCents, 33000);
+  assert.equal(sale.totalCostCents, 22000);
+  assert.equal(sale.marginCents, 11000);
+
+  assert.equal(checkStockAlert(0, 3), 'OUT_OF_STOCK');
+  assert.equal(checkStockAlert(3, 3), 'LOW_STOCK');
+  assert.equal(checkStockAlert(4, 3), 'OK');
 });

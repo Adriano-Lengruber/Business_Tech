@@ -7,6 +7,11 @@ import {
   QUOTE_ITEM_TYPES,
   QUOTE_TIERS,
 } from './finance.js';
+import {
+  FISCAL_DOC_TYPES,
+  INVENTORY_MOVEMENT_TYPES,
+  TAX_REGIMES,
+} from './inventory-pos.js';
 
 export const loginSchema = z.object({
   email: z.string().email('Informe um e-mail válido'),
@@ -161,3 +166,97 @@ export const createTransactionSchema = z.object({
   serviceOrderId: z.string().uuid().optional().nullable(),
 });
 export type CreateTransactionInput = z.infer<typeof createTransactionSchema>;
+
+export const createProductSchema = z.object({
+  sku: z.string().min(2, 'SKU obrigatório').max(60),
+  barcode: z.string().max(60).optional(),
+  name: z.string().min(2, 'Nome do produto obrigatório').max(180),
+  category: z.string().min(2).max(80).default('hardware'),
+  brand: z.string().max(80).optional(),
+  unit: z.string().max(16).default('UN'),
+  costCents: z.coerce.number().int().min(0).default(0),
+  priceCents: z.coerce.number().int().min(0),
+  stockQty: z.coerce.number().int().min(0).default(0),
+  minStockQty: z.coerce.number().int().min(0).default(2),
+  ncm: z.string().max(12).optional(),
+  cfopDefault: z.string().max(8).default('5102'),
+  csosnDefault: z.string().max(8).default('102'),
+});
+export type CreateProductInput = z.infer<typeof createProductSchema>;
+
+export const createStockMovementSchema = z.object({
+  productId: z.string().uuid(),
+  type: z.enum(INVENTORY_MOVEMENT_TYPES),
+  quantityDelta: z.coerce.number().int().refine((n) => n !== 0, 'Quantidade não pode ser zero'),
+  unitCostCents: z.coerce.number().int().min(0).default(0),
+  note: z.string().max(400).optional(),
+});
+export type CreateStockMovementInput = z.infer<typeof createStockMovementSchema>;
+
+export const createSupplierSchema = z.object({
+  name: z.string().min(2).max(180),
+  cnpj: z.string().max(20).optional(),
+  email: z.string().email().optional().or(z.literal('')),
+  phone: z.string().max(24).optional(),
+  leadTimeDays: z.coerce.number().int().min(0).max(365).default(3),
+});
+export type CreateSupplierInput = z.infer<typeof createSupplierSchema>;
+
+export const createPurchaseOrderSchema = z.object({
+  supplierId: z.string().uuid(),
+  notes: z.string().max(1000).optional(),
+  items: z
+    .array(
+      z.object({
+        productId: z.string().uuid(),
+        quantity: z.coerce.number().int().positive(),
+        unitCostCents: z.coerce.number().int().min(0),
+      }),
+    )
+    .min(1),
+});
+export type CreatePurchaseOrderInput = z.infer<typeof createPurchaseOrderSchema>;
+
+export const createPosSaleSchema = z.object({
+  customerId: z.string().uuid().optional().nullable(),
+  paymentMethod: z.enum(PAYMENT_METHODS).default('pix'),
+  discountCents: z.coerce.number().int().min(0).default(0),
+  paidImmediately: z.boolean().default(true),
+  items: z
+    .array(
+      z.object({
+        productId: z.string().uuid(),
+        quantity: z.coerce.number().int().positive(),
+        unitPriceCents: z.coerce.number().int().min(0).optional(),
+      }),
+    )
+    .min(1, 'Adicione ao menos 1 item ao carrinho'),
+});
+export type CreatePosSaleInput = z.infer<typeof createPosSaleSchema>;
+
+export const consumeOsPartSchema = z.object({
+  productId: z.string().uuid(),
+  quantity: z.coerce.number().int().positive().default(1),
+  note: z.string().max(300).optional(),
+});
+export type ConsumeOsPartInput = z.infer<typeof consumeOsPartSchema>;
+
+export const upsertFiscalProfileSchema = z.object({
+  taxRegime: z.enum(TAX_REGIMES).default('SIMPLES_NACIONAL'),
+  stateUf: z.string().length(2).default('SP'),
+  cityCode: z.string().max(12).default('3550308'),
+  nfeSeries: z.coerce.number().int().min(1).default(1),
+  nfceSeries: z.coerce.number().int().min(1).default(1),
+  nfseSeries: z.coerce.number().int().min(1).default(1),
+  providerName: z.enum(['sandbox', 'focus_nfe', 'plugnotas']).default('sandbox'),
+  simulateRejection: z.boolean().default(false),
+});
+export type UpsertFiscalProfileInput = z.infer<typeof upsertFiscalProfileSchema>;
+
+export const emitFiscalDocSchema = z.object({
+  docType: z.enum(FISCAL_DOC_TYPES),
+  referenceType: z.enum(['sale', 'service_order']),
+  referenceId: z.string().uuid(),
+  simulateRejection: z.boolean().default(false),
+});
+export type EmitFiscalDocInput = z.infer<typeof emitFiscalDocSchema>;

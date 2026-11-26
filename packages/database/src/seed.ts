@@ -18,6 +18,9 @@ import {
   osDiagnostics,
   quotes,
   quoteItems,
+  suppliers,
+  products,
+  fiscalProfiles,
   conversations,
   messages,
 } from './schema/index.js';
@@ -417,6 +420,89 @@ async function seed() {
         ]);
       }
     }
+
+    const existingProds = await db
+      .select({ id: products.id })
+      .from(products)
+      .where(eq(products.organizationId, orgId))
+      .limit(1);
+
+    if (existingProds.length === 0) {
+      await db.insert(suppliers).values({
+        organizationId: orgId,
+        name: 'Distribuidora TechBR Atacado',
+        cnpj: '12.345.678/0001-99',
+        email: 'compras@techbr.exemplo.com',
+        phone: '+551133334444',
+        leadTimeDays: 2,
+      });
+
+      await db.insert(products).values([
+        {
+          organizationId: orgId,
+          sku: 'SSD-NVME-500',
+          barcode: '7890001000011',
+          name: 'SSD NVMe M.2 500GB PCIe 4.0',
+          category: 'armazenamento',
+          brand: 'Kingston',
+          costCents: 18500,
+          priceCents: 31900,
+          stockQty: 8,
+          minStockQty: 3,
+          ncm: '84717040',
+        },
+        {
+          organizationId: orgId,
+          sku: 'RAM-DDR4-16G',
+          barcode: '7890001000028',
+          name: 'Memória Notebook 16GB DDR4 3200MHz',
+          category: 'memoria',
+          brand: 'Crucial',
+          costCents: 16000,
+          priceCents: 27900,
+          stockQty: 5,
+          minStockQty: 2,
+          ncm: '84733042',
+        },
+        {
+          organizationId: orgId,
+          sku: 'PASTA-TERM-4G',
+          barcode: '7890001000035',
+          name: 'Pasta Térmica Alta Condutividade 4g',
+          category: 'insumos',
+          brand: 'Arctic',
+          costCents: 3200,
+          priceCents: 7500,
+          stockQty: 2,
+          minStockQty: 3,
+          ncm: '38249989',
+        },
+        {
+          organizationId: orgId,
+          sku: 'CABO-USBC-2M',
+          barcode: '7890001000042',
+          name: 'Cabo USB-C 100W PD Nylon 2m',
+          category: 'acessorios',
+          brand: 'Ugreen',
+          costCents: 2400,
+          priceCents: 6900,
+          stockQty: 14,
+          minStockQty: 4,
+          ncm: '85444200',
+        },
+      ]);
+    }
+
+    await db
+      .insert(fiscalProfiles)
+      .values({
+        organizationId: orgId,
+        taxRegime: 'SIMPLES_NACIONAL',
+        stateUf: 'SP',
+        cityCode: '3550308',
+        providerName: 'sandbox',
+      })
+      .onConflictDoNothing();
 
     console.log('[seed] Seed concluído com sucesso para AL Tech & Soluções.');
   } finally {
