@@ -2,10 +2,12 @@ import {
   BadRequestException,
   Body,
   Controller,
+  Delete,
   Get,
   Inject,
   NotFoundException,
   Param,
+  Patch,
   Post,
   Query,
 } from '@nestjs/common';
@@ -25,7 +27,7 @@ import {
   serviceOrders,
   warrantyCases,
 } from '@al/database';
-import { createCustomerSchema } from '@al/shared';
+import { createCustomerSchema, updateCustomerSchema } from '@al/shared';
 import {
   CurrentUser,
   RequirePermission,
@@ -232,6 +234,106 @@ export class CustomersController {
           ).length,
         },
       };
+    });
+  }
+
+  @Patch(':id')
+  @RequirePermission('customers:write')
+  @ApiOperation({ summary: 'Atualizar dados cadastrais do cliente' })
+  async update(
+    @Param('id') id: string,
+    @Body() body: unknown,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    const parsed = updateCustomerSchema.safeParse(body);
+    if (!parsed.success) {
+      throw new BadRequestException(parsed.error.flatten());
+    }
+
+    return this.database.withTenant(user.organizationId, async (tx) => {
+      const [existing] = await tx
+        .select()
+        .from(customers)
+        .where(and(eq(customers.id, id), isNull(customers.deletedAt)))
+        .limit(1);
+      if (!existing) throw new NotFoundException('Cliente não encontrado.');
+
+      const input = parsed.data;
+      let nextPhone = existing.phoneE164;
+      if (input.phoneE164) {
+        const digits = input.phoneE164.replace(/\D/g, '');
+        nextPhone = digits.startsWith('55') ? `+${digits}` : `+55${digits}`;
+      }
+
+      const [updated] = await tx
+        .update(customers)
+        .set({
+          type: input.type ?? existing.type,
+          name: input.name !== undefined ? input.name.trim() : existing.name,
+          phoneE164: nextPhone,
+          email:
+            input.email !== undefined
+              ? input.email
+                ? input.email.trim().toLowerCase()
+                : null
+              : existing.email,
+          tags: input.tags !== undefined ? input.tags : existing.tags,
+          updatedAt: new Date(),
+        })
+        .where(eq(customers.id, id))
+        .returning({
+          id: customers.id,
+          type: customers.type,
+          name: customers.name,
+          phoneE164: customers.phoneE164,
+          email: customers.email,
+          tags: customers.tags,
+          createdAt: customers.createdAt,
+        });
+
+      await tx.insert(auditLogs).values({
+        organizationId: user.organizationId,
+        actorType: 'human',
+        actorId: user.userId,
+        action: 'customer.updated',
+        entityType: 'customer',
+        entityId: id,
+      });
+
+      return updated!;
+    });
+  }
+
+  @Delete(':id')
+  @RequirePermission('customers:write')
+  @ApiOperation({ summary: 'Arquivar (soft delete) cliente preservando OS/NF históricas' })
+  async softDelete(
+    @Param('id') id: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.database.withTenant(user.organizationId, async (tx) => {
+      const [existing] = await tx
+        .select({ id: customers.id })
+        .from(customers)
+        .where(and(eq(customers.id, id), isNull(customers.deletedAt)))
+        .limit(1);
+      if (!existing) throw new NotFoundException('Cliente não encontrado.');
+
+      await tx
+        .update(customers)
+        .set({ deletedAt: new Date(), updatedAt: new Date() })
+        .where(eq(customers.id, id));
+
+      await tx.insert(auditLogs).values({
+        organizationId: user.organizationId,
+        actorType: 'human',
+        actorId: user.userId,
+        action: 'customer.archived',
+        entityType: 'customer',
+        entityId: id,
+      });
+
+      return { archived: true, id };
     });
   }
 }

@@ -2,15 +2,18 @@ import {
   BadRequestException,
   Body,
   Controller,
+  Delete,
   Get,
   Headers,
   Inject,
   Param,
+  Patch,
   Post,
+  Query,
   UnauthorizedException,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { createTransactionSchema } from '@al/shared';
+import { createTransactionSchema, updateTransactionSchema } from '@al/shared';
 import {
   CurrentUser,
   Public,
@@ -32,21 +35,30 @@ export class FinanceController {
 
   @Get('summary')
   @RequirePermission('finance:read')
-  @ApiOperation({ summary: 'Resumo financeiro e margem em centavos' })
+  @ApiOperation({ summary: 'Resumo financeiro, DRE por categoria e fluxo em centavos' })
   summary(@CurrentUser() user: AuthenticatedUser) {
     return this.financeService.getSummary(user.organizationId);
   }
 
   @Get('transactions')
   @RequirePermission('finance:read')
-  @ApiOperation({ summary: 'Listar contas a pagar e receber' })
-  list(@CurrentUser() user: AuthenticatedUser) {
-    return this.financeService.listTransactions(user.organizationId);
+  @ApiOperation({ summary: 'Listar contas a pagar e receber com filtros' })
+  list(
+    @Query('type') type: string | undefined,
+    @Query('status') status: string | undefined,
+    @Query('q') q: string | undefined,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.financeService.listTransactions(user.organizationId, {
+      type,
+      status,
+      q,
+    });
   }
 
   @Post('transactions')
   @RequirePermission('finance:write')
-  @ApiOperation({ summary: 'Criar lançamento financeiro (com PIX Asaas/Sandbox)' })
+  @ApiOperation({ summary: 'Criar lançamento financeiro (com PIX Asaas/Sandbox ou baixa imediata)' })
   create(@Body() body: unknown, @CurrentUser() user: AuthenticatedUser) {
     const parsed = createTransactionSchema.safeParse(body);
     if (!parsed.success) {
@@ -56,6 +68,37 @@ export class FinanceController {
       user.organizationId,
       user.userId,
       parsed.data,
+    );
+  }
+
+  @Patch('transactions/:id')
+  @RequirePermission('finance:write')
+  @ApiOperation({ summary: 'Editar lançamento financeiro (descrição, valor, vencimento, status)' })
+  update(
+    @Param('id') id: string,
+    @Body() body: unknown,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    const parsed = updateTransactionSchema.safeParse(body);
+    if (!parsed.success) {
+      throw new BadRequestException(parsed.error.flatten());
+    }
+    return this.financeService.updateTransaction(
+      user.organizationId,
+      id,
+      user.userId,
+      parsed.data,
+    );
+  }
+
+  @Delete('transactions/:id')
+  @RequirePermission('finance:write')
+  @ApiOperation({ summary: 'Cancelar lançamento financeiro preservando trilha de auditoria' })
+  cancel(@Param('id') id: string, @CurrentUser() user: AuthenticatedUser) {
+    return this.financeService.cancelTransaction(
+      user.organizationId,
+      id,
+      user.userId,
     );
   }
 

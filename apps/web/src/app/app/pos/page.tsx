@@ -12,7 +12,22 @@ interface ProductRow {
   name: string;
   costCents: number;
   priceCents: number;
+  wholesalePriceCents?: number | null;
+  vipPriceCents?: number | null;
   stockQty: number;
+}
+
+interface CustomerOption {
+  id: string;
+  name: string;
+}
+
+type PriceTier = 'retail' | 'wholesale' | 'vip';
+
+function getTierUnitPrice(p: ProductRow, tier: PriceTier): number {
+  if (tier === 'wholesale' && p.wholesalePriceCents) return p.wholesalePriceCents;
+  if (tier === 'vip' && p.vipPriceCents) return p.vipPriceCents;
+  return p.priceCents;
 }
 
 interface SaleRow {
@@ -32,9 +47,12 @@ function formatBrl(cents: number) {
 
 function PosContent({ session }: { session: ErpSession }) {
   const [products, setProducts] = useState<ProductRow[]>([]);
+  const [customers, setCustomers] = useState<CustomerOption[]>([]);
   const [sales, setSales] = useState<SaleRow[]>([]);
   const [search, setSearch] = useState('');
   const [cart, setCart] = useState<Array<{ product: ProductRow; quantity: number }>>([]);
+  const [priceTier, setPriceTier] = useState<PriceTier>('retail');
+  const [customerId, setCustomerId] = useState('');
   const [discountBrl, setDiscountBrl] = useState('0');
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('pix');
   const [lastSaleMessage, setLastSaleMessage] = useState<string | null>(null);
@@ -45,15 +63,17 @@ function PosContent({ session }: { session: ErpSession }) {
   const load = useCallback(async () => {
     const token = window.localStorage.getItem('al_token');
     if (!token || !enabled) return;
-    const [prods, saleRows] = await Promise.all([
+    const [prods, saleRows, custRows] = await Promise.all([
       apiFetch<ProductRow[]>(
         `/inventory/products?q=${encodeURIComponent(search)}`,
         { token },
       ),
       apiFetch<SaleRow[]>('/pos/sales', { token }),
+      apiFetch<CustomerOption[]>('/customers?q=', { token }).catch(() => []),
     ]);
     setProducts(prods);
     setSales(saleRows);
+    setCustomers(custRows);
   }, [enabled, search]);
 
   useEffect(() => {
@@ -81,7 +101,7 @@ function PosContent({ session }: { session: ErpSession }) {
     cart.map((c) => ({
       quantity: c.quantity,
       unitCostCents: c.product.costCents,
-      unitPriceCents: c.product.priceCents,
+      unitPriceCents: getTierUnitPrice(c.product, priceTier),
     })),
     discountCents,
   );
@@ -95,12 +115,14 @@ function PosContent({ session }: { session: ErpSession }) {
         method: 'POST',
         token,
         body: JSON.stringify({
+          customerId: customerId || undefined,
           paymentMethod,
           discountCents,
           paidImmediately: true,
           items: cart.map((c) => ({
             productId: c.product.id,
             quantity: c.quantity,
+            unitPriceCents: getTierUnitPrice(c.product, priceTier),
           })),
         }),
       });
@@ -185,7 +207,7 @@ function PosContent({ session }: { session: ErpSession }) {
                   <p className="mt-1 font-medium">{p.name}</p>
                 </div>
                 <p className="mt-3 font-mono text-base font-bold text-accent">
-                  {formatBrl(p.priceCents)}
+                  {formatBrl(getTierUnitPrice(p, priceTier))}
                 </p>
               </button>
             ))}
@@ -262,6 +284,33 @@ function PosContent({ session }: { session: ErpSession }) {
           )}
 
           <div className="space-y-2 border-t border-border pt-3 text-sm">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-xs text-text-secondary">Cliente</span>
+              <select
+                value={customerId}
+                onChange={(e) => setCustomerId(e.target.value)}
+                className="max-w-[170px] rounded border border-border bg-bg px-2 py-1 text-xs"
+              >
+                <option value="">Balcão Anônimo</option>
+                {customers.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-xs text-text-secondary">Tabela Preço</span>
+              <select
+                value={priceTier}
+                onChange={(e) => setPriceTier(e.target.value as PriceTier)}
+                className="rounded border border-border bg-bg px-2 py-1 text-xs"
+              >
+                <option value="retail">Varejo / Balcão</option>
+                <option value="vip">Cliente VIP Loja</option>
+                <option value="wholesale">Atacado B2B</option>
+              </select>
+            </div>
             <div className="flex items-center justify-between">
               <span className="text-xs text-text-secondary">Desconto (R$)</span>
               <input

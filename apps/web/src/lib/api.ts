@@ -1,6 +1,10 @@
 const API_BASE =
   process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/api/v1';
 
+export function getApiBaseUrl() {
+  return API_BASE;
+}
+
 export class ApiError extends Error {
   constructor(
     public readonly status: number,
@@ -16,7 +20,14 @@ export async function apiFetch<T>(
   options: RequestInit & { token?: string } = {},
 ): Promise<T> {
   const headers = new Headers(options.headers);
-  headers.set('Content-Type', 'application/json');
+  if (
+    options.body !== undefined &&
+    options.body !== null &&
+    !(options.body instanceof FormData) &&
+    !headers.has('Content-Type')
+  ) {
+    headers.set('Content-Type', 'application/json');
+  }
   if (options.token) {
     headers.set('Authorization', `Bearer ${options.token}`);
   }

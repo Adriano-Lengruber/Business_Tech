@@ -4,10 +4,12 @@ import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import Link from 'next/link';
 import {
   BookMarked,
+  Edit3,
   Laptop,
   Plus,
   Search,
   ShieldCheck,
+  Trash2,
   UserCheck,
   Wrench,
 } from 'lucide-react';
@@ -92,8 +94,9 @@ function Customers360Content() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [timeline, setTimeline] = useState<CustomerTimeline | null>(null);
 
-  // New customer form
+  // New / Edit customer form
   const [showNewCust, setShowNewCust] = useState(false);
+  const [editingCustomerId, setEditingCustomerId] = useState<string | null>(null);
   const [custType, setCustType] = useState<'PF' | 'PJ'>('PF');
   const [custName, setCustName] = useState('');
   const [custPhone, setCustPhone] = useState('');
@@ -154,6 +157,22 @@ function Customers360Content() {
     e.preventDefault();
     const token = window.localStorage.getItem('al_token');
     if (!token) return;
+    if (editingCustomerId) {
+      await apiFetch(`/customers/${editingCustomerId}`, {
+        method: 'PATCH',
+        token,
+        body: JSON.stringify({
+          type: custType,
+          name: custName,
+          phoneE164: custPhone,
+          email: custEmail || null,
+        }),
+      });
+      setEditingCustomerId(null);
+      setShowNewCust(false);
+      await Promise.all([loadCustomers(query), loadTimeline(editingCustomerId)]);
+      return;
+    }
     const created = await apiFetch<CustomerListItem>('/customers', {
       method: 'POST',
       token,
@@ -170,6 +189,28 @@ function Customers360Content() {
     setShowNewCust(false);
     setSelectedId(created.id);
     await loadCustomers('');
+  }
+
+  function startEditCustomer() {
+    if (!timeline) return;
+    setEditingCustomerId(timeline.customer.id);
+    setCustType(timeline.customer.type);
+    setCustName(timeline.customer.name);
+    setCustPhone(timeline.customer.phoneE164);
+    setCustEmail(timeline.customer.email ?? '');
+    setShowNewCust(true);
+  }
+
+  async function handleArchiveCustomer(id: string) {
+    const token = window.localStorage.getItem('al_token');
+    if (!token) return;
+    await apiFetch(`/customers/${id}`, {
+      method: 'DELETE',
+      token,
+    });
+    setSelectedId(null);
+    setTimeline(null);
+    await loadCustomers(query);
   }
 
   async function handleCreateService(e: FormEvent) {
@@ -428,13 +469,31 @@ function Customers360Content() {
                         {timeline.customer.email ? `· ${timeline.customer.email}` : ''}
                       </p>
                     </div>
-                    <Link
-                      href="/app/os/new"
-                      className="inline-flex items-center gap-1.5 rounded-xl bg-accent px-3.5 py-2 text-xs font-semibold text-accent-foreground hover:bg-accent-hover"
-                    >
-                      <Wrench className="h-3.5 w-3.5" />
-                      Nova OS para cliente
-                    </Link>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={startEditCustomer}
+                        className="inline-flex items-center gap-1 rounded-xl border border-border px-3 py-2 text-xs font-medium hover:border-accent"
+                      >
+                        <Edit3 className="h-3.5 w-3.5" />
+                        Editar
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => void handleArchiveCustomer(timeline.customer.id)}
+                        className="inline-flex items-center gap-1 rounded-xl border border-border px-2.5 py-2 text-xs text-danger hover:bg-danger/10"
+                        title="Arquivar cliente"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                      <Link
+                        href="/app/os/new"
+                        className="inline-flex items-center gap-1.5 rounded-xl bg-accent px-3.5 py-2 text-xs font-semibold text-accent-foreground hover:bg-accent-hover"
+                      >
+                        <Wrench className="h-3.5 w-3.5" />
+                        Nova OS para cliente
+                      </Link>
+                    </div>
                   </div>
 
                   <div className="mt-4 grid grid-cols-2 gap-2.5 sm:grid-cols-4 text-center">

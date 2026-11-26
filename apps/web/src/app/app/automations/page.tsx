@@ -7,6 +7,7 @@ import {
   Play,
   Plus,
   Power,
+  Trash2,
   Zap,
 } from 'lucide-react';
 import { AUTOMATION_TRIGGER_EVENTS, type AutomationTriggerEvent } from '@al/shared';
@@ -100,6 +101,16 @@ function AutomationsContent() {
     if (!token) return;
     await apiFetch(`/automations/rules/${id}/toggle`, {
       method: 'PATCH',
+      token,
+    });
+    await load();
+  }
+
+  async function handleDeleteRule(id: string) {
+    const token = window.localStorage.getItem('al_token');
+    if (!token) return;
+    await apiFetch(`/automations/rules/${id}`, {
+      method: 'DELETE',
       token,
     });
     await load();
@@ -263,18 +274,28 @@ function AutomationsContent() {
                     {r.name}
                   </h3>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => void handleToggle(r.id)}
-                  className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 font-mono text-[10px] font-semibold ${
-                    r.isActive
-                      ? 'border-success/40 bg-success/12 text-success'
-                      : 'border-border bg-surface-muted text-text-muted'
-                  }`}
-                >
-                  <Power className="h-3 w-3" />
-                  {r.isActive ? 'ATIVA' : 'PAUSADA'}
-                </button>
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => void handleToggle(r.id)}
+                    className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 font-mono text-[10px] font-semibold ${
+                      r.isActive
+                        ? 'border-success/40 bg-success/12 text-success'
+                        : 'border-border bg-surface-muted text-text-muted'
+                    }`}
+                  >
+                    <Power className="h-3 w-3" />
+                    {r.isActive ? 'ATIVA' : 'PAUSADA'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void handleDeleteRule(r.id)}
+                    className="rounded-lg border border-border p-1 text-danger hover:bg-danger/10"
+                    title="Excluir regra"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                </div>
               </div>
               <p className="text-xs text-text-secondary">{r.templateText}</p>
               <p className="font-mono text-[11px] text-text-muted">

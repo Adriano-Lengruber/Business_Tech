@@ -24,6 +24,11 @@ export const suppliers = pgTable(
     email: varchar('email', { length: 255 }),
     phone: varchar('phone', { length: 24 }),
     leadTimeDays: integer('lead_time_days').notNull().default(3),
+    websiteUrl: text('website_url'),
+    paymentTerms: varchar('payment_terms', { length: 120 }),
+    acceptsMei: boolean('accepts_mei').notNull().default(true),
+    notes: text('notes'),
+    isActive: boolean('is_active').notNull().default(true),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   },
   (t) => [index('suppliers_org_idx').on(t.organizationId)],
@@ -39,11 +44,19 @@ export const products = pgTable(
     sku: varchar('sku', { length: 60 }).notNull(),
     barcode: varchar('barcode', { length: 60 }),
     name: varchar('name', { length: 180 }).notNull(),
+    description: text('description'),
+    imageStorageKey: text('image_storage_key'),
     category: varchar('category', { length: 80 }).notNull().default('hardware'),
     brand: varchar('brand', { length: 80 }),
     unit: varchar('unit', { length: 16 }).notNull().default('UN'),
     costCents: integer('cost_cents').notNull().default(0),
     priceCents: integer('price_cents').notNull().default(0),
+    wholesalePriceCents: integer('wholesale_price_cents'),
+    vipPriceCents: integer('vip_price_cents'),
+    warrantyDays: integer('warranty_days').notNull().default(90),
+    preferredSupplierId: uuid('preferred_supplier_id').references(() => suppliers.id, {
+      onDelete: 'set null',
+    }),
     stockQty: integer('stock_qty').notNull().default(0),
     minStockQty: integer('min_stock_qty').notNull().default(2),
     ncm: varchar('ncm', { length: 12 }),
@@ -56,6 +69,32 @@ export const products = pgTable(
   (t) => [
     uniqueIndex('products_org_sku_idx').on(t.organizationId, t.sku),
     index('products_org_barcode_idx').on(t.organizationId, t.barcode),
+  ],
+);
+
+export const productSuppliers = pgTable(
+  'product_suppliers',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    organizationId: uuid('organization_id')
+      .notNull()
+      .references(() => organizations.id, { onDelete: 'cascade' }),
+    productId: uuid('product_id')
+      .notNull()
+      .references(() => products.id, { onDelete: 'cascade' }),
+    supplierId: uuid('supplier_id')
+      .notNull()
+      .references(() => suppliers.id, { onDelete: 'cascade' }),
+    supplierSku: varchar('supplier_sku', { length: 80 }),
+    lastCostCents: integer('last_cost_cents').notNull().default(0),
+    supplierUrl: text('supplier_url'),
+    notes: text('notes'),
+    isPreferred: boolean('is_preferred').notNull().default(false),
+    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    uniqueIndex('product_suppliers_prod_sup_idx').on(t.productId, t.supplierId),
+    index('product_suppliers_org_idx').on(t.organizationId),
   ],
 );
 

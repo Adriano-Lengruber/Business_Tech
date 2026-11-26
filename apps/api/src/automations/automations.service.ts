@@ -102,6 +102,23 @@ export class AutomationsService {
     });
   }
 
+  async deleteRule(organizationId: string, id: string) {
+    return this.database.withTenant(organizationId, async (tx) => {
+      const [existing] = await tx
+        .select({ id: automationRules.id })
+        .from(automationRules)
+        .where(eq(automationRules.id, id))
+        .limit(1);
+
+      if (!existing) {
+        throw new NotFoundException('Regra de automação não encontrada.');
+      }
+
+      await tx.delete(automationRules).where(eq(automationRules.id, id));
+      return { deleted: true, id };
+    });
+  }
+
   async runActiveRules(organizationId: string, userId: string) {
     return this.database.withTenant(organizationId, async (tx) => {
       const rules = await tx

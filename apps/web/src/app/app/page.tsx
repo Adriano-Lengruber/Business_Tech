@@ -50,9 +50,14 @@ interface AnalyticsOverview {
   dailyCashflow: DailyCashflowPoint[];
   quoteFunnel: QuoteFunnelStats;
   revenueSummary: {
+    days?: 7 | 30;
     totalIncomeCents: number;
     totalExpenseCents: number;
+    pendingIncomeCents?: number;
+    pendingExpenseCents?: number;
+    totalAllExpenseCents?: number;
     netBalanceCents: number;
+    projectedBalanceCents?: number;
     overdueReceivableCents: number;
   };
 }
@@ -131,6 +136,7 @@ function DashboardContent({ session }: { session: ErpSession }) {
   const [briefing, setBriefing] = useState<DailyBriefing | null>(null);
   const [refreshingAi, setRefreshingAi] = useState(false);
   const [orders, setOrders] = useState<ServiceOrderRow[]>([]);
+  const [cashflowDays, setCashflowDays] = useState<7 | 30>(7);
   const [viewMode, setViewMode] = useState<'list' | 'kanban'>('list');
   const [searchTerm, setSearchTerm] = useState('');
   const [movingId, setMovingId] = useState<string | null>(null);
@@ -145,9 +151,9 @@ function DashboardContent({ session }: { session: ErpSession }) {
 
     try {
       const promises: Promise<unknown>[] = [
-        apiFetch<AnalyticsOverview>('/analytics/overview', { token }).then(
-          setAnalytics,
-        ),
+        apiFetch<AnalyticsOverview>(`/analytics/overview?days=${cashflowDays}`, {
+          token,
+        }).then(setAnalytics),
       ];
       if (hasOs) {
         promises.push(
@@ -170,7 +176,7 @@ function DashboardContent({ session }: { session: ErpSession }) {
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erro ao carregar indicadores');
     }
-  }, [hasOs, hasAi]);
+  }, [hasOs, hasAi, cashflowDays]);
 
   useEffect(() => {
     void loadOperationalData();
@@ -339,6 +345,10 @@ function DashboardContent({ session }: { session: ErpSession }) {
               data={analytics.dailyCashflow}
               totalIncomeCents={analytics.revenueSummary.totalIncomeCents}
               totalExpenseCents={analytics.revenueSummary.totalExpenseCents}
+              pendingIncomeCents={analytics.revenueSummary.pendingIncomeCents ?? 0}
+              pendingExpenseCents={analytics.revenueSummary.pendingExpenseCents ?? 0}
+              days={cashflowDays}
+              onDaysChange={setCashflowDays}
             />
           </div>
           <div className="lg:col-span-4">

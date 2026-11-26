@@ -1,4 +1,4 @@
-import { Controller, Get, Inject } from '@nestjs/common';
+import { Controller, Get, Inject, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import {
   CurrentUser,
@@ -21,7 +21,11 @@ export class AnalyticsController {
   @ApiOperation({
     summary: 'Indicadores gráficos em tempo real de OS, fluxo de caixa e conversão',
   })
-  getOverview(@CurrentUser() user: AuthenticatedUser) {
-    return this.analytics.getOverview(user.organizationId);
+  getOverview(
+    @Query('days') days: string | undefined,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    const windowDays = days === '30' ? 30 : 7;
+    return this.analytics.getOverview(user.organizationId, windowDays);
   }
 }
