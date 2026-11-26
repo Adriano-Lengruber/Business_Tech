@@ -6,10 +6,13 @@ import { usePathname, useRouter } from 'next/navigation';
 import {
   Boxes,
   DollarSign,
+  FileCheck2,
   LayoutDashboard,
   LogOut,
   MessageSquare,
+  Package,
   PlusCircle,
+  ShoppingCart,
   Wrench,
 } from 'lucide-react';
 import type { ModuleCode } from '@al/shared';
@@ -96,9 +99,27 @@ export function ErpShell({
       show: true,
     },
     {
+      href: '/app/inventory',
+      label: 'Estoque & Compras',
+      icon: Package,
+      show: session.enabledModules.includes('mod-inventory-pos'),
+    },
+    {
+      href: '/app/pos',
+      label: 'PDV (Vendas)',
+      icon: ShoppingCart,
+      show: session.enabledModules.includes('mod-inventory-pos'),
+    },
+    {
       href: '/app/finance',
       label: 'Financeiro & PIX',
       icon: DollarSign,
+      show: session.enabledModules.includes('mod-finance-fiscal'),
+    },
+    {
+      href: '/app/fiscal',
+      label: 'Notas Fiscais (SEFAZ)',
+      icon: FileCheck2,
       show: session.enabledModules.includes('mod-finance-fiscal'),
     },
     {

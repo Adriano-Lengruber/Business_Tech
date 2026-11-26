@@ -24,6 +24,10 @@ export const PERMISSIONS = [
   'ai:approve_sensitive',
   'finance:read',
   'finance:write',
+  'inventory:read',
+  'inventory:write',
+  'pos:sell',
+  'fiscal:manage',
   'audit:read',
 ] as const;
 
@@ -36,6 +40,7 @@ export const ROLE_PERMISSIONS: Record<OrgRole, readonly Permission[]> = {
     'customers:read',
     'os:read',
     'os:write',
+    'inventory:read',
     'inbox:read',
     'inbox:reply',
     'inbox:handoff',
@@ -46,13 +51,15 @@ export const ROLE_PERMISSIONS: Record<OrgRole, readonly Permission[]> = {
     'customers:write',
     'os:read',
     'os:write',
+    'inventory:read',
+    'pos:sell',
     'inbox:read',
     'inbox:reply',
     'inbox:handoff',
     'finance:read',
     'ai:use_copilot',
   ],
-  viewer: ['customers:read', 'os:read', 'inbox:read'],
+  viewer: ['customers:read', 'os:read', 'inventory:read', 'inbox:read'],
 };
 
 export function hasPermission(role: OrgRole, permission: Permission): boolean {

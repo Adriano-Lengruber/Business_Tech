@@ -29,6 +29,13 @@ import {
 } from './finance/finance.controller';
 import { FinanceService } from './finance/finance.service';
 import { AsaasPaymentProvider } from './finance/payment.provider';
+import { InventoryController } from './inventory/inventory.controller';
+import { InventoryService } from './inventory/inventory.service';
+import { PosController } from './pos/pos.controller';
+import { PosService } from './pos/pos.service';
+import { FiscalController } from './fiscal/fiscal.controller';
+import { FiscalService } from './fiscal/fiscal.service';
+import { SandboxFiscalProvider } from './fiscal/fiscal.provider';
 import { SearchController } from './search/search.controller';
 import { HealthController } from './health/health.controller';
 
@@ -63,6 +70,9 @@ import { HealthController } from './health/health.controller';
     PortalController,
     FinanceController,
     AsaasWebhookController,
+    InventoryController,
+    PosController,
+    FiscalController,
     SearchController,
   ],
   providers: [
@@ -72,6 +82,10 @@ import { HealthController } from './health/health.controller';
     QuotesService,
     FinanceService,
     AsaasPaymentProvider,
+    InventoryService,
+    PosService,
+    FiscalService,
+    SandboxFiscalProvider,
     { provide: APP_GUARD, useClass: JwtAuthGuard },
     { provide: APP_GUARD, useClass: PermissionsGuard },
     { provide: APP_GUARD, useClass: ModuleEntitlementGuard },
