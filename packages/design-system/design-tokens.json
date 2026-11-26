@@ -1,0 +1,74 @@
+{
+  "$schema": "https://tr.designtokens.org/format/",
+  "brand": "AL Business OS",
+  "color": {
+    "light": {
+      "background": "#F8FAFC",
+      "surface": "#FFFFFF",
+      "surfaceMuted": "#F1F5F9",
+      "border": "#E2E8F0",
+      "textPrimary": "#0F172A",
+      "textSecondary": "#475569",
+      "textMuted": "#64748B",
+      "accent": "#2563EB",
+      "accentHover": "#1D4ED8",
+      "accentForeground": "#FFFFFF",
+      "success": "#15803D",
+      "warning": "#B45309",
+      "danger": "#B91C1C",
+      "info": "#0369A1"
+    },
+    "dark": {
+      "background": "#0B0F17",
+      "surface": "#111827",
+      "surfaceMuted": "#1E293B",
+      "border": "#263142",
+      "textPrimary": "#F8FAFC",
+      "textSecondary": "#94A3B8",
+      "textMuted": "#64748B",
+      "accent": "#3B82F6",
+      "accentHover": "#60A5FA",
+      "accentForeground": "#0B0F17",
+      "success": "#22C55E",
+      "warning": "#F59E0B",
+      "danger": "#EF4444",
+      "info": "#38BDF8"
+    }
+  },
+  "typography": {
+    "fontSans": "Inter, Geist, system-ui, sans-serif",
+    "fontMono": "JetBrains Mono, ui-monospace, monospace",
+    "scale": {
+      "display": { "size": "3rem", "lineHeight": "1.1", "weight": "700" },
+      "h1": { "size": "1.875rem", "lineHeight": "1.2", "weight": "600" },
+      "h2": { "size": "1.5rem", "lineHeight": "1.25", "weight": "600" },
+      "h3": { "size": "1.125rem", "lineHeight": "1.35", "weight": "600" },
+      "body": { "size": "0.875rem", "lineHeight": "1.5", "weight": "400" },
+      "bodyLg": { "size": "1rem", "lineHeight": "1.6", "weight": "400" },
+      "caption": { "size": "0.75rem", "lineHeight": "1.4", "weight": "500" }
+    }
+  },
+  "spacing": {
+    "unit": "4px",
+    "scale": {
+      "1": "4px",
+      "2": "8px",
+      "3": "12px",
+      "4": "16px",
+      "6": "24px",
+      "8": "32px",
+      "12": "48px",
+      "16": "64px"
+    }
+  },
+  "radius": {
+    "sm": "6px",
+    "md": "8px",
+    "lg": "12px",
+    "full": "9999px"
+  },
+  "motion": {
+    "fast": "150ms cubic-bezier(0.16, 1, 0.3, 1)",
+    "base": "220ms cubic-bezier(0.16, 1, 0.3, 1)"
+  }
+}

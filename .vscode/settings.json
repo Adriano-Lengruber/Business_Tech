@@ -1,0 +1,14 @@
+{
+  "files.eol": "\n",
+  "editor.formatOnSave": true,
+  "editor.tabSize": 2,
+  "typescript.tsdk": "node_modules/typescript/lib",
+  "typescript.enablePromptUseWorkspaceTsdk": true,
+  "search.exclude": {
+    "**/node_modules": true,
+    "**/dist": true,
+    "**/.next": true,
+    "**/.turbo": true,
+    "**/infra/docker/volumes": true
+  }
+}

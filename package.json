@@ -1,0 +1,29 @@
+{
+  "name": "al-business-os",
+  "version": "0.1.0",
+  "private": true,
+  "description": "AL Business OS — ERP/CRM Modular e Agêntico para Assistência Técnica, Software, Impressão 3D e Varejo",
+  "packageManager": "pnpm@12.10.1",
+  "engines": {
+    "node": ">=22.0.0 <25.0.0",
+    "pnpm": ">=10.0.0"
+  },
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "clean": "turbo run clean",
+    "infra:up": "docker compose -f infra/docker/docker-compose.yml --env-file .env up -d",
+    "infra:up:whatsapp": "docker compose -f infra/docker/docker-compose.yml --env-file .env --profile whatsapp up -d",
+    "infra:up:ai": "docker compose -f infra/docker/docker-compose.yml --env-file .env --profile ai-local up -d",
+    "infra:up:full": "docker compose -f infra/docker/docker-compose.yml --env-file .env --profile whatsapp --profile ai-local up -d",
+    "infra:down": "docker compose -f infra/docker/docker-compose.yml --profile whatsapp --profile ai-local down",
+    "infra:logs": "docker compose -f infra/docker/docker-compose.yml logs -f --tail=100"
+  },
+  "devDependencies": {
+    "turbo": "^2.5.0",
+    "typescript": "^5.8.0"
+  }
+}

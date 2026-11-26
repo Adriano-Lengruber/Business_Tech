@@ -1,0 +1,39 @@
+# Dependencies & Package Managers
+node_modules/
+.pnpm-store/
+*.tsbuildinfo
+
+# Environment & Secrets (NEVER commit real secrets)
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# Build Outputs
+dist/
+build/
+.next/
+out/
+.turbo/
+coverage/
+
+# Docker Local Volumes & Data
+infra/docker/volumes/
+*.sql.dump
+*.rdb
+
+# Logs & Debug
+logs/
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS & Editor
+.DS_Store
+Thumbs.db
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea/
