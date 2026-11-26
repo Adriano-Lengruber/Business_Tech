@@ -4,6 +4,7 @@ import { useEffect, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
+  BookOpen,
   Boxes,
   Code2,
   DollarSign,
@@ -142,6 +143,12 @@ export function ErpShell({
       label: 'Social & Growth IA',
       icon: Megaphone,
       show: session.enabledModules.includes('mod-social-growth'),
+    },
+    {
+      href: '/app/knowledge',
+      label: 'IA & Base RAG',
+      icon: BookOpen,
+      show: session.enabledModules.includes('mod-ai-agents'),
     },
     {
       href: '/app/modules',

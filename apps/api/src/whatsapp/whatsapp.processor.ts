@@ -17,6 +17,7 @@ import { AgentToolRegistry, AiGateway, type AiPrivacyMode } from '@al/ai-core';
 import { OS_STATUS_LABELS, type OsStatus } from '@al/shared';
 import { appEnv } from '../config/env';
 import { DatabaseService } from '../database/database.module';
+import { KnowledgeService } from '../ai/knowledge.service';
 import { EvolutionMessagingProvider } from './messaging.provider';
 import {
   QUEUE_OS_NOTIFICATIONS,
@@ -33,6 +34,8 @@ export class OsNotificationsProcessor extends WorkerHost {
     @Inject(DatabaseService) private readonly database: DatabaseService,
     @Inject(EvolutionMessagingProvider)
     private readonly messaging: EvolutionMessagingProvider,
+    @Inject(KnowledgeService)
+    private readonly knowledgeService: KnowledgeService,
   ) {
     super();
   }
@@ -174,6 +177,8 @@ export class WhatsappInboundProcessor extends WorkerHost {
     @Inject(DatabaseService) private readonly database: DatabaseService,
     @Inject(EvolutionMessagingProvider)
     private readonly messaging: EvolutionMessagingProvider,
+    @Inject(KnowledgeService)
+    private readonly knowledgeService: KnowledgeService,
   ) {
     super();
   }
@@ -322,6 +327,10 @@ export class WhatsappInboundProcessor extends WorkerHost {
     const ordersData = toolRes.status === 'EXECUTED' ? toolRes.data : [];
     const latestOs = ordersData[0];
 
+    const ragHits = await this.knowledgeService
+      .hybridSearch(organizationId, combinedCustomerText, 2)
+      .catch(() => []);
+
     let replyText = '';
     let usedProvider = 'grounded-fallback';
     let usedModel = 'deterministic-template';
@@ -337,6 +346,9 @@ export class WhatsappInboundProcessor extends WorkerHost {
           prazoPrometido: o.promisedAt,
         })),
       );
+      const ragContext = ragHits
+        .map((h) => `[${h.documentTitle}]: ${h.content}`)
+        .join('\n');
 
       const aiResult = await this.aiGateway.generateGroundedReply({
         task: 'whatsapp_support',
@@ -346,6 +358,7 @@ export class WhatsappInboundProcessor extends WorkerHost {
           `Responda em português brasileiro de forma educada, objetiva e clara.`,
           `Use EXCLUSIVAMENTE os dados reais abaixo. Nunca invente prazos, preços ou diagnósticos não listados.`,
           `Dados reais das OS do cliente: ${contextJson}`,
+          ragContext ? `Base de conhecimento interna:\n${ragContext}` : '',
         ].join('\n'),
         prompt: combinedCustomerText,
         timeoutMs: 8000,

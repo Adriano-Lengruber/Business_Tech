@@ -26,6 +26,8 @@ import {
   projects,
   projectTasks,
   socialPosts,
+  knowledgeDocuments,
+  knowledgeChunks,
   conversations,
   messages,
 } from './schema/index.js';
@@ -625,6 +627,58 @@ async function seed() {
         commentsCount: 12,
         leadsGenerated: 3,
       });
+    }
+
+    const existingDocs = await db
+      .select({ id: knowledgeDocuments.id })
+      .from(knowledgeDocuments)
+      .where(eq(knowledgeDocuments.organizationId, orgId))
+      .limit(1);
+
+    if (existingDocs.length === 0) {
+      const warrantyContent =
+        'Política de Garantia e Atendimento AL Tech: Todos os reparos em notebooks, desktops e substituições de peças possuem garantia padrão de 90 dias contra defeitos no serviço executado. Horário de funcionamento: segunda a sexta das 09h às 18h e sábados das 09h às 13h. Diagnóstico inicial gratuito em até 48 horas úteis.';
+      const thermalSopContent =
+        'Procedimento Técnico de Superaquecimento: Ao receber notebook que desliga por temperatura, executar teste de estresse por 10 minutos, medir rotação do cooler, inspecionar aletas de cobre e substituir pasta térmica ressecada por composto de alta condutividade térmica.';
+
+      const [doc1] = await db
+        .insert(knowledgeDocuments)
+        .values({
+          organizationId: orgId,
+          title: 'Política de Garantia e Horários — AL Tech',
+          sourceType: 'policy',
+          sha256: createHash('sha256').update(warrantyContent).digest('hex'),
+          storageKey: 'kb/seed-garantia.txt',
+        })
+        .returning({ id: knowledgeDocuments.id });
+
+      const [doc2] = await db
+        .insert(knowledgeDocuments)
+        .values({
+          organizationId: orgId,
+          title: 'SOP Técnico: Diagnóstico de Superaquecimento',
+          sourceType: 'sop',
+          sha256: createHash('sha256').update(thermalSopContent).digest('hex'),
+          storageKey: 'kb/seed-sop-termico.txt',
+        })
+        .returning({ id: knowledgeDocuments.id });
+
+      await db.insert(knowledgeChunks).values([
+        {
+          organizationId: orgId,
+          documentId: doc1!.id,
+          chunkIndex: 0,
+          content: warrantyContent,
+          metadata: { source: 'Política de Garantia e Horários — AL Tech' },
+        },
+        {
+          organizationId: orgId,
+          documentId: doc2!.id,
+          chunkIndex: 0,
+          content: thermalSopContent,
+          metadata: { source: 'SOP Técnico: Diagnóstico de Superaquecimento' },
+        },
+      ]);
     }
 
     console.log('[seed] Seed concluído com sucesso para AL Tech & Soluções.');

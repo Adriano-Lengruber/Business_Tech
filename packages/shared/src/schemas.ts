@@ -346,3 +346,23 @@ export const createLeadSchema = z.object({
   notes: z.string().max(1000).optional(),
 });
 export type CreateLeadInput = z.infer<typeof createLeadSchema>;
+
+export const ingestKnowledgeDocSchema = z.object({
+  title: z.string().min(2, 'Título obrigatório').max(200),
+  sourceType: z
+    .enum(['manual', 'policy', 'sop', 'faq', 'contract'])
+    .default('policy'),
+  content: z.string().min(20, 'Conteúdo deve ter ao menos 20 caracteres').max(100000),
+});
+export type IngestKnowledgeDocInput = z.infer<typeof ingestKnowledgeDocSchema>;
+
+export const searchKnowledgeSchema = z.object({
+  query: z.string().min(2).max(500),
+  limit: z.coerce.number().int().min(1).max(15).default(4),
+});
+export type SearchKnowledgeInput = z.infer<typeof searchKnowledgeSchema>;
+
+export const copilotAskSchema = z.object({
+  question: z.string().min(2, 'Digite uma pergunta').max(1000),
+});
+export type CopilotAskInput = z.infer<typeof copilotAskSchema>;

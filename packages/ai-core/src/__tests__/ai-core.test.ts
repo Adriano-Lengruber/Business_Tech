@@ -5,6 +5,10 @@ import {
   AiGateway,
   PrivacyPolicyViolationError,
   AgentToolRegistry,
+  chunkText,
+  EMBEDDING_DIMENSIONS,
+  generateDeterministicFallbackEmbedding,
+  reciprocalRankFusion,
 } from '../index.js';
 
 test('AiGateway blocks cloud fallback when organization is in strict_local mode', () => {
@@ -91,4 +95,29 @@ test('AgentToolRegistry enforces module entitlements and AI risk matrix', async 
     humanApproved: true,
   });
   assert.equal(blockedResult.status, 'BLOCKED');
+});
+
+test('RAG utilities chunk text, normalize 1024-d fallback embeddings and fuse ranks via RRF', () => {
+  const sample = 'Parágrafo um sobre garantia.\n\nParágrafo dois sobre superaquecimento e pasta térmica.';
+  const chunks = chunkText(sample, 45, 10);
+  assert.ok(chunks.length >= 2);
+
+  const vec = generateDeterministicFallbackEmbedding('garantia de 90 dias notebook');
+  assert.equal(vec.length, EMBEDDING_DIMENSIONS);
+  const norm = Math.sqrt(vec.reduce((sum, v) => sum + v * v, 0));
+  assert.ok(Math.abs(norm - 1) < 0.01);
+
+  const fused = reciprocalRankFusion(
+    [
+      { id: 'c1', documentId: 'd1', documentTitle: 'Doc 1', content: 'A' },
+      { id: 'c2', documentId: 'd1', documentTitle: 'Doc 1', content: 'B' },
+    ],
+    [
+      { id: 'c2', documentId: 'd1', documentTitle: 'Doc 1', content: 'B' },
+      { id: 'c3', documentId: 'd2', documentTitle: 'Doc 2', content: 'C' },
+    ],
+  );
+  // c2 appears in both lexical and vector hits, so RRF ranks it first
+  assert.equal(fused[0]?.id, 'c2');
+  assert.ok((fused[0]?.rankScore ?? 0) > (fused[1]?.rankScore ?? 0));
 });
